@@ -105,6 +105,17 @@ public abstract class AbstractText<char_t>
         return true;
     }
 
+    @Override
+    public String asString() {
+        int n = length();
+        StringBuilder sb = new StringBuilder(n);
+        for (int i = 0; i < n; i++) {
+            char_t ch = charAt(i);
+            sb.append(ch.toString());
+        }
+        return sb.toString();
+    }
+
     private static boolean equals(Object a, Object b) {
         if (a == null || b == null)
             return a == b;

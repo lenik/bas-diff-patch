@@ -26,4 +26,6 @@ public interface Text<char_t>
 
     boolean endsWith(Text<char_t> pattern);
 
+    String asString();
+
 }
