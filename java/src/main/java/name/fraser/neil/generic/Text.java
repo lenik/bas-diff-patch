@@ -22,6 +22,10 @@ public interface Text<char_t>
 
     int indexOf(Text<char_t> pattern, int from);
 
+    int lastIndexOf(Text<char_t> pattern);
+
+    int lastIndexOf(Text<char_t> pattern, int from);
+
     boolean startsWith(Text<char_t> pattern);
 
     boolean endsWith(Text<char_t> pattern);

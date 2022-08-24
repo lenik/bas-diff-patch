@@ -61,7 +61,7 @@ public class CharText
         checkIndex(end);
         if (end < begin)
             throw new IllegalArgumentException("end is less than begin");
-        return new ArrayCharText(array, off + begin, off + (end - begin));
+        return new CharText(array, off + begin, off + (end - begin));
     }
 
     private char[] _alloc(int n) {

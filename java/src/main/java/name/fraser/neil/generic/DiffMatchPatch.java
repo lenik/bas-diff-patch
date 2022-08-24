@@ -79,8 +79,12 @@ public class DiffMatchPatch<char_t> {
    */
   private short Match_MaxBits = 32;
 
-  private ICleanupSemanticScore<Object> cleanupSemanticScore = StringFormHelper.INSTANCE;
+  ICleanupSemanticScore<Object> cleanupSemanticScore = StringFormHelper.INSTANCE;
+  ITextConverter<char_t> textConverter;
 
+  public DiffMatchPatch(ITextConverter<char_t> textConverter) {
+    this.textConverter = textConverter;
+  }
 
 /**
    * Internal class for returning results from diff_linesToChars().
@@ -1385,9 +1389,9 @@ public class DiffMatchPatch<char_t> {
    * @return Array of Diff objects or null if invalid.
    * @throws IllegalArgumentException If invalid input.
    */
-  public LinkedList<Diff<String>> diff_fromDelta(String text1, String delta)
+  public LinkedList<Diff<char_t>> diff_fromDelta(Text<char_t> text1, String delta)
       throws IllegalArgumentException {
-    LinkedList<Diff<String>> diffs = new LinkedList<Diff<String>>();
+    LinkedList<Diff<char_t>> diffs = new LinkedList<Diff<char_t>>();
     int pointer = 0;  // Cursor in text1
     String[] tokens = delta.split("\t");
     for (String token : tokens) {
@@ -1412,7 +1416,8 @@ public class DiffMatchPatch<char_t> {
           throw new IllegalArgumentException(
               "Illegal escape in diff_fromDelta: " + param, e);
         }
-        diffs.add(new Diff<String>(Operation.INSERT, param));
+        Text<char_t> line = textConverter.parse(param);
+        diffs.add(new Diff<char_t>(Operation.INSERT, line));
         break;
       case '-':
         // Fall through.
@@ -1428,7 +1433,7 @@ public class DiffMatchPatch<char_t> {
           throw new IllegalArgumentException(
               "Negative number in diff_fromDelta: " + param);
         }
-        String text;
+        Text<char_t> text;
         try {
           text = text1.substring(pointer, pointer += n);
         } catch (StringIndexOutOfBoundsException e) {
@@ -1437,9 +1442,9 @@ public class DiffMatchPatch<char_t> {
               + ").", e);
         }
         if (token.charAt(0) == '=') {
-          diffs.add(new Diff<String>(Operation.EQUAL, Arrays.asList(text)));
+          diffs.add(new Diff<char_t>(Operation.EQUAL, text));
         } else {
-          diffs.add(new Diff<String>(Operation.DELETE, Arrays.asList(text)));
+          diffs.add(new Diff<char_t>(Operation.DELETE, text));
         }
         break;
       default:
@@ -1640,11 +1645,11 @@ public class DiffMatchPatch<char_t> {
    * @param patch The patch to grow.
    * @param text Source text.
    */
-  protected void patch_addContext(Patch<String> patch, String text) {
+  protected void patch_addContext(Patch<char_t> patch, Text<char_t> text) {
     if (text.length() == 0) {
       return;
     }
-    String pattern = text.substring(patch.start2, patch.start2 + patch.length1);
+    Text<char_t> pattern = text.substring(patch.start2, patch.start2 + patch.length1);
     int padding = 0;
 
     // Look for the first and last matches of pattern in text.  If two different
@@ -1659,16 +1664,16 @@ public class DiffMatchPatch<char_t> {
     padding += Patch_Margin;
 
     // Add the prefix.
-    String prefix = text.substring(Math.max(0, patch.start2 - padding),
+    Text<char_t> prefix = text.substring(Math.max(0, patch.start2 - padding),
         patch.start2);
     if (prefix.length() != 0) {
-      patch.diffs.addFirst(new Diff<String>(Operation.EQUAL, prefix));
+      patch.diffs.addFirst(new Diff<char_t>(Operation.EQUAL, prefix));
     }
     // Add the suffix.
-    String suffix = text.substring(patch.start2 + patch.length1,
+    Text<char_t> suffix = text.substring(patch.start2 + patch.length1,
         Math.min(text.length(), patch.start2 + patch.length1 + padding));
     if (suffix.length() != 0) {
-      patch.diffs.addLast(new Diff<String>(Operation.EQUAL, suffix));
+      patch.diffs.addLast(new Diff<char_t>(Operation.EQUAL, suffix));
     }
 
     // Roll back the start points.
@@ -1686,18 +1691,17 @@ public class DiffMatchPatch<char_t> {
    * @param text2 New text.
    * @return LinkedList of Patch objects.
    */
-  public LinkedList<Patch<String>> patch_make(List<String> text1, List<String> text2) {
+  public LinkedList<Patch<char_t>> patch_make(Text<char_t> text1, Text<char_t> text2) {
     if (text1 == null || text2 == null) {
       throw new IllegalArgumentException("Null inputs. (patch_make)");
     }
     // No diffs provided, compute our own.
-    DiffMatchPatch<String> sv = new DiffMatchPatch<String>();
-    LinkedList<Diff<String>> diffs = sv.diff_main(text1, text2, true);
+    LinkedList<Diff<char_t>> diffs = diff_main(text1, text2, true);
     if (diffs.size() > 2) {
-      sv.diff_cleanupSemantic(diffs);
-      sv.diff_cleanupEfficiency(diffs);
+      diff_cleanupSemantic(diffs);
+      diff_cleanupEfficiency(diffs);
     }
-    return sv.patch_make(text1, diffs);
+    return patch_make(text1, diffs);
   }
 
   /**
@@ -1706,12 +1710,12 @@ public class DiffMatchPatch<char_t> {
    * @param diffs Array of Diff objects for text1 to text2.
    * @return LinkedList of Patch objects.
    */
-  public LinkedList<Patch> patch_make(LinkedList<Diff<char_t>> diffs) {
+  public LinkedList<Patch<char_t>> patch_make(LinkedList<Diff<char_t>> diffs) {
     if (diffs == null) {
       throw new IllegalArgumentException("Null inputs. (patch_make)");
     }
     // No origin string provided, compute our own.
-    String text1 = diff_text1(diffs);
+    Text<char_t> text1 = diff_text1(diffs);
     return patch_make(text1, diffs);
   }
 
@@ -1724,7 +1728,7 @@ public class DiffMatchPatch<char_t> {
    * @return LinkedList of Patch objects.
    * @deprecated Prefer patch_make(String text1, LinkedList<Diff> diffs).
    */
-  @Deprecated public LinkedList<Patch<String>> patch_make(List<String> text1, List<String> text2,
+  @Deprecated public LinkedList<Patch<char_t>> patch_make(Text<char_t> text1, Text<char_t> text2,
       LinkedList<Diff<char_t>> diffs) {
     return patch_make(text1, diffs);
   }
@@ -1736,23 +1740,23 @@ public class DiffMatchPatch<char_t> {
    * @param diffs Array of Diff objects for text1 to text2.
    * @return LinkedList of Patch objects.
    */
-  public LinkedList<Patch<String>> patch_make(List<String> text1, LinkedList<Diff<char_t>> diffs) {
+  public LinkedList<Patch<char_t>> patch_make(Text<char_t> text1, LinkedList<Diff<char_t>> diffs) {
     if (text1 == null || diffs == null) {
       throw new IllegalArgumentException("Null inputs. (patch_make)");
     }
 
-    LinkedList<Patch<String>> patches = new LinkedList<Patch<String>>();
+    LinkedList<Patch<char_t>> patches = new LinkedList<Patch<char_t>>();
     if (diffs.isEmpty()) {
       return patches;  // Get rid of the null case.
     }
-    Patch patch = new Patch();
+    Patch<char_t> patch = new Patch<char_t>();
     int char_count1 = 0;  // Number of characters into the text1 string.
     int char_count2 = 0;  // Number of characters into the text2 string.
     // Start with text1 (prepatch_text) and apply the diffs until we arrive at
     // text2 (postpatch_text). We recreate the patches one by one to determine
     // context info.
-    String prepatch_text = text1;
-    String postpatch_text = text1;
+    Text<char_t> prepatch_text = text1;
+    Text<char_t> postpatch_text = text1;
     for (Diff<char_t> aDiff : diffs) {
       if (patch.diffs.isEmpty() && aDiff.operation != Operation.EQUAL) {
         // A new patch starts here.
@@ -1764,14 +1768,14 @@ public class DiffMatchPatch<char_t> {
       case INSERT:
         patch.diffs.add(aDiff);
         patch.length2 += aDiff.text.length();
-        postpatch_text = postpatch_text.substring(0, char_count2)
-            + aDiff.text + postpatch_text.substring(char_count2);
+        postpatch_text = postpatch_text.substring(0, char_count2).concat(
+            aDiff.text).concat(postpatch_text.substring(char_count2));
         break;
       case DELETE:
         patch.length1 += aDiff.text.length();
         patch.diffs.add(aDiff);
-        postpatch_text = postpatch_text.substring(0, char_count2)
-            + postpatch_text.substring(char_count2 + aDiff.text.length());
+        postpatch_text = postpatch_text.substring(0, char_count2).concat(
+            postpatch_text.substring(char_count2 + aDiff.text.length()));
         break;
       case EQUAL:
         if (aDiff.text.length() <= 2 * Patch_Margin
@@ -1787,7 +1791,7 @@ public class DiffMatchPatch<char_t> {
           if (!patch.diffs.isEmpty()) {
             patch_addContext(patch, prepatch_text);
             patches.add(patch);
-            patch = new Patch();
+            patch = new Patch<char_t>();
             // Unlike Unidiff, our patch lists have a rolling context.
             // https://github.com/google/diff-match-patch/wiki/Unidiff
             // Update prepatch text & pos to reflect the application of the
