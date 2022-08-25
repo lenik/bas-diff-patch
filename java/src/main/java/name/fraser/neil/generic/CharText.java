@@ -7,6 +7,10 @@ public class CharText
     int off;
     int len;
 
+    public CharText(String s) {
+        this(s.toCharArray());
+    }
+
     public CharText(char[] array) {
         this(array, 0, array.length);
     }
