@@ -1,5 +1,7 @@
 package name.fraser.neil.generic;
 
+import net.bodz.bas.text.generic.Text;
+
 public class HalfMatch<char_t> {
 
     public Text<char_t> prefix1; // 0

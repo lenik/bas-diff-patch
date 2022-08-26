@@ -14,17 +14,21 @@
 package name.fraser.neil.plaintext;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+
+import name.fraser.neil.generic.diff_match_patch_compat;
 
 public class Speedtest {
 
   public static void main(String args[]) throws IOException {
-    String text1 = readFile("tests/name/fraser/neil/plaintext/Speedtest1.txt");
-    String text2 = readFile("tests/name/fraser/neil/plaintext/Speedtest2.txt");
+    String text1 = readFile("name/fraser/neil/plaintext/Speedtest1.txt");
+    String text2 = readFile("name/fraser/neil/plaintext/Speedtest2.txt");
 
-    diff_match_patch dmp = new diff_match_patch();
-    dmp.Diff_Timeout = 0;
+    diff_match_patch_compat dmp = new diff_match_patch_compat();
+    dmp.core.Diff_Timeout = 0;
 
     // Execute one reverse diff as a warmup.
     dmp.diff_main(text2, text1, false);
@@ -38,7 +42,8 @@ public class Speedtest {
   private static String readFile(String filename) throws IOException {
     // Read a file from disk and return the text contents.
     StringBuilder sb = new StringBuilder();
-    FileReader input = new FileReader(filename);
+    URL resource = Speedtest.class.getClassLoader().getResource(filename);
+    Reader input = new InputStreamReader(resource.openStream());
     BufferedReader bufRead = new BufferedReader(input);
     try {
       String line = bufRead.readLine();
