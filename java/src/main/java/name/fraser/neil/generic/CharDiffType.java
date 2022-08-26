@@ -1,12 +1,15 @@
 package name.fraser.neil.generic;
 
+import net.bodz.bas.text.generic.CharText;
+import net.bodz.bas.text.generic.Text;
+
 class CharDiffType
         implements
             ICharDiffType<Character> {
 
     @Override
-    public Character createJunk() {
-        return '?';
+    public Character separator() {
+        return '\n';
     }
 
     @Override

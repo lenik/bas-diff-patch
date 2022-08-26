@@ -1,10 +1,12 @@
 package name.fraser.neil.generic;
 
+import net.bodz.bas.text.generic.Text;
+
 public interface ICharDiffType<char_t>
         extends
             ICharType<char_t> {
 
-    char_t createJunk();
+    char_t separator();
 
     char_t createPadding();
 
@@ -14,5 +16,7 @@ public interface ICharDiffType<char_t>
 
     CharDiffType CHAR_ARRAY = new CharDiffType();
     IntDiffType INT_LIST = new IntDiffType();
+    LineDiffType LINE_LIST = new LineDiffType();
+    LineLnDiffType LINE_LN_LIST = new LineLnDiffType();
 
 }

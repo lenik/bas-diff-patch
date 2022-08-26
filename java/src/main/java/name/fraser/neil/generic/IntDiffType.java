@@ -2,9 +2,19 @@ package name.fraser.neil.generic;
 
 import java.util.StringTokenizer;
 
+import net.bodz.bas.text.generic.ListText;
+import net.bodz.bas.text.generic.Text;
+
 public class IntDiffType
         implements
             ICharDiffType<Integer> {
+
+    public static final int SEP = -1;
+
+    @Override
+    public Integer separator() {
+        return -1;
+    }
 
     @Override
     public String format(Text<? extends Integer> text) {
@@ -28,11 +38,6 @@ public class IntDiffType
             buf.append(val);
         }
         return buf;
-    }
-
-    @Override
-    public Integer createJunk() {
-        return -1;
     }
 
     @Override
