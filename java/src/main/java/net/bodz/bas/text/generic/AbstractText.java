@@ -1,4 +1,4 @@
-package name.fraser.neil.generic;
+package net.bodz.bas.text.generic;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -7,8 +7,8 @@ public abstract class AbstractText<char_t>
         implements
             Text<char_t> {
 
-    @Override
-    public Iterator<char_t> iterator() {
+//    @Override
+    public Iterator<char_t> iterator2() {
         return new Iterator<char_t>() {
 
             int n = length();
@@ -35,6 +35,38 @@ public abstract class AbstractText<char_t>
     }
 
     @Override
+    public boolean isEmpty() {
+        return length() == 0;
+    }
+
+    @Override
+    public int indexOf(char_t pattern) {
+        return indexOf(pattern, 0);
+    }
+
+    @Override
+    public int indexOf(char_t pattern, int from) {
+        int n = length();
+        for (int i = from; i < n; i++)
+            if (pattern.equals(charAt(i)))
+                return i;
+        return -1;
+    }
+
+    @Override
+    public int lastIndexOf(char_t pattern) {
+        return lastIndexOf(pattern, length() - 1);
+    }
+
+    @Override
+    public int lastIndexOf(char_t pattern, int from) {
+        for (int i = from; i >= 0; i--)
+            if (pattern.equals(charAt(i)))
+                return i;
+        return -1;
+    }
+
+    @Override
     public int indexOf(Text<char_t> pattern) {
         return indexOf(pattern, 0);
     }
@@ -46,7 +78,7 @@ public abstract class AbstractText<char_t>
 
     @Override
     public int lastIndexOf(Text<char_t> pattern) {
-        return lastIndexOf(pattern, 0);
+        return lastIndexOf(pattern, this.length());
     }
 
     @Override
@@ -67,9 +99,9 @@ public abstract class AbstractText<char_t>
         int max = sourceOffset + (sourceCount - targetCount);
 
         for (int i = sourceOffset + fromIndex; i <= max; i++) {
-            if (notEquals(source.charAt(i), first))
+            if (Nullables.notEquals(source.charAt(i), first))
                 while (++i <= max)
-                    if (equals(source.charAt(i), first))
+                    if (Nullables.equals(source.charAt(i), first))
                         break;
 
             if (i <= max) {
@@ -78,7 +110,7 @@ public abstract class AbstractText<char_t>
 
                 int k = targetOffset + 1;
                 while (j < end) {
-                    if (notEquals(source.charAt(j), target.charAt(k)))
+                    if (Nullables.notEquals(source.charAt(j), target.charAt(k)))
                         break;
                     j++;
                     k++;
@@ -107,7 +139,7 @@ public abstract class AbstractText<char_t>
 
         L: while (true) {
             while (i >= min) {
-                if (equals(source.charAt(i), strLastChar))
+                if (Nullables.equals(source.charAt(i), strLastChar))
                     break;
                 i--;
             }
@@ -119,7 +151,7 @@ public abstract class AbstractText<char_t>
             int k = strLastIndex - 1;
 
             while (j > start)
-                if (notEquals(source.charAt(j--), target.charAt(k--))) {
+                if (Nullables.notEquals(source.charAt(j--), target.charAt(k--))) {
                     i--;
                     continue L;
                 }
@@ -134,7 +166,7 @@ public abstract class AbstractText<char_t>
         if (nl < np)
             return false;
         for (int i = 0; i < np; i++)
-            if (notEquals(charAt(i), pattern.charAt(i)))
+            if (Nullables.notEquals(charAt(i), pattern.charAt(i)))
                 return false;
         return true;
     }
@@ -147,7 +179,7 @@ public abstract class AbstractText<char_t>
             return false;
         int tail = nl - np;
         for (int i = 0; i < np; i++)
-            if (notEquals(charAt(tail + i), pattern.charAt(i)))
+            if (Nullables.notEquals(charAt(tail + i), pattern.charAt(i)))
                 return false;
         return true;
     }
@@ -163,18 +195,46 @@ public abstract class AbstractText<char_t>
         return sb.toString();
     }
 
-    private static boolean equals(Object a, Object b) {
-        if (a == null || b == null)
-            return a == b;
-        else
-            return a.equals(b);
+    @Override
+    public String toString() {
+        return asString();
     }
 
-    private static boolean notEquals(Object a, Object b) {
-        if (a == null || b == null)
-            return a != b;
-        else
-            return !a.equals(b);
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        int len = length();
+        for (int i = 0; i < len; i++) {
+            char_t c = charAt(i);
+            result = prime * result + c.hashCode();
+        }
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+
+        @SuppressWarnings("unchecked")
+        AbstractText<char_t> other = (AbstractText<char_t>) obj;
+
+        int len = length();
+        if (len != other.length())
+            return false;
+
+        for (int i = 0; i < len; i++) {
+            char_t c1 = charAt(i);
+            char_t c2 = other.charAt(i);
+            if (!c1.equals(c2))
+                return false;
+        }
+        return true;
     }
 
 }

@@ -1,4 +1,4 @@
-package name.fraser.neil.generic;
+package net.bodz.bas.text.generic;
 
 public class CharText
         extends AbstractText<Character> {
@@ -11,20 +11,20 @@ public class CharText
         this(s.toCharArray());
     }
 
-    public CharText(char[] array) {
+    public CharText(char... array) {
         this(array, 0, array.length);
     }
 
-    public CharText(char[] array, int start, int end) {
+    public CharText(char[] array, int begin, int end) {
         if (array == null)
             throw new NullPointerException("array");
-        if (start < 0 || start >= array.length)
-            throw new IndexOutOfBoundsException("illegal start: " + start);
-        if (end < 0 || end > array.length)
-            throw new IndexOutOfBoundsException("illegal end: " + end);
+        if (begin < 0)
+            throw new IndexOutOfBoundsException("illegal begin: " + begin);
+        if (end < begin)
+            throw new IllegalArgumentException("end is less than begin");
         this.array = array;
-        this.off = start;
-        this.len = end - start;
+        this.off = begin;
+        this.len = end - begin;
     }
 
     private void checkIndex(int index) {
@@ -45,27 +45,30 @@ public class CharText
     @Override
     public Character charAt(int index) {
         checkIndex(index);
-        return array[index];
+        return array[off + index];
     }
 
     public char _charAt(int index) {
         checkIndex(index);
-        return array[index];
+        return array[off + index];
     }
 
     @Override
     public CharText substring(int begin) {
-        checkIndex(begin);
+        if (begin < 0 || begin > len)
+            throw new IndexOutOfBoundsException(String.valueOf(begin));
         return new CharText(array, off + begin, off + len);
     }
 
     @Override
     public CharText substring(int begin, int end) {
-        checkIndex(begin);
-        checkIndex(end);
+        if (begin < 0)
+            throw new IndexOutOfBoundsException(String.valueOf(begin));
+        if (end < 0 || end - begin > len)
+            throw new IndexOutOfBoundsException(String.valueOf(end));
         if (end < begin)
             throw new IllegalArgumentException("end is less than begin");
-        return new CharText(array, off + begin, off + (end - begin));
+        return new CharText(array, off + begin, off + end);
     }
 
     private char[] _alloc(int n) {

@@ -1,8 +1,12 @@
-package name.fraser.neil.generic;
+package net.bodz.bas.text.generic;
 
+/**
+ * char_t element in the object can't be null.
+ */
 public interface Text<char_t>
-        extends
-            Iterable<char_t> {
+//        extends
+//            Iterable<char_t>
+        {
 
     int length();
 
@@ -17,6 +21,14 @@ public interface Text<char_t>
     Text<char_t> concat(char_t o);
 
     Text<char_t> concat(Text<char_t> o);
+
+    int indexOf(char_t pattern);
+
+    int indexOf(char_t pattern, int from);
+
+    int lastIndexOf(char_t pattern);
+
+    int lastIndexOf(char_t pattern, int from);
 
     int indexOf(Text<char_t> pattern);
 
