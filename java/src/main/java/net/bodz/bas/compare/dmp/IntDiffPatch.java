@@ -1,4 +1,4 @@
-package name.fraser.neil.generic;
+package net.bodz.bas.compare.dmp;
 
 public class IntDiffPatch
         extends DiffMatchPatch<Integer> {

@@ -19,7 +19,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 
-import name.fraser.neil.generic.diff_match_patch_compat;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat;
 
 public class Speedtest {
 

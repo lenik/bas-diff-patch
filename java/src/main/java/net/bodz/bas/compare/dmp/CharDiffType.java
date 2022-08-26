@@ -1,4 +1,4 @@
-package name.fraser.neil.generic;
+package net.bodz.bas.compare.dmp;
 
 import net.bodz.bas.text.generic.CharText;
 import net.bodz.bas.text.generic.Text;

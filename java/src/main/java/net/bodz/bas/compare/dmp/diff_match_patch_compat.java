@@ -1,4 +1,4 @@
-package name.fraser.neil.generic;
+package net.bodz.bas.compare.dmp;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -7,13 +7,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import net.bodz.bas.compare.dmp.DiffMatchPatch.Diff;
+import net.bodz.bas.compare.dmp.DiffMatchPatch.LinesToCharsResult;
+import net.bodz.bas.compare.dmp.DiffMatchPatch.Operation;
+import net.bodz.bas.compare.dmp.DiffMatchPatch.Patch;
 import net.bodz.bas.text.generic.CharText;
 import net.bodz.bas.text.generic.Text;
-
-import name.fraser.neil.generic.DiffMatchPatch.Diff;
-import name.fraser.neil.generic.DiffMatchPatch.LinesToCharsResult;
-import name.fraser.neil.generic.DiffMatchPatch.Operation;
-import name.fraser.neil.generic.DiffMatchPatch.Patch;
 
 public class diff_match_patch_compat {
 

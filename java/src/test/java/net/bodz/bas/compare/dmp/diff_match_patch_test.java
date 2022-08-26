@@ -23,7 +23,7 @@
  * java -classpath classes name/fraser/neil/plaintext/diff_match_patch_test
  */
 
-package name.fraser.neil.generic;
+package net.bodz.bas.compare.dmp;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,12 +32,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import name.fraser.neil.generic.DiffMatchPatch;
-import name.fraser.neil.generic.diff_match_patch_compat;
-import name.fraser.neil.generic.DiffMatchPatch.Operation;
-import name.fraser.neil.generic.diff_match_patch_compat._Diff;
-import name.fraser.neil.generic.diff_match_patch_compat._LinesToCharsResult;
-import name.fraser.neil.generic.diff_match_patch_compat._Patch;
+import net.bodz.bas.compare.dmp.DiffMatchPatch;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat;
+import net.bodz.bas.compare.dmp.DiffMatchPatch.Operation;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat._Diff;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat._LinesToCharsResult;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat._Patch;
 
 public class diff_match_patch_test {
 

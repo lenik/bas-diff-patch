@@ -1,12 +1,12 @@
-package name.fraser.neil.generic;
+package net.bodz.bas.compare.dmp;
 
 import java.util.LinkedList;
 
 import org.junit.Assert;
 
-import name.fraser.neil.generic.diff_match_patch_compat;
-import name.fraser.neil.generic.diff_match_patch_compat._Diff;
-import name.fraser.neil.generic.diff_match_patch_compat._Patch;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat._Diff;
+import net.bodz.bas.compare.dmp.diff_match_patch_compat._Patch;
 
 
 public class DmpUser
