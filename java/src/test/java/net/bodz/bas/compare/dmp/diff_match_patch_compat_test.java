@@ -32,14 +32,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import net.bodz.bas.compare.dmp.DiffMatchPatch;
-import net.bodz.bas.compare.dmp.diff_match_patch_compat;
 import net.bodz.bas.compare.dmp.DiffMatchPatch.Operation;
 import net.bodz.bas.compare.dmp.diff_match_patch_compat._Diff;
 import net.bodz.bas.compare.dmp.diff_match_patch_compat._LinesToCharsResult;
 import net.bodz.bas.compare.dmp.diff_match_patch_compat._Patch;
 
-public class diff_match_patch_test {
+public class diff_match_patch_compat_test {
 
     private static diff_match_patch_compat dmp;
     private static DiffMatchPatch<?> _dmp;
