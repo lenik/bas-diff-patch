@@ -28,7 +28,7 @@ public class Speedtest {
     String text2 = readFile("name/fraser/neil/plaintext/Speedtest2.txt");
 
     diff_match_patch_compat dmp = new diff_match_patch_compat();
-    dmp.core.Diff_Timeout = 0;
+    dmp.config.Diff_Timeout = 0;
 
     // Execute one reverse diff as a warmup.
     dmp.diff_main(text2, text1, false);

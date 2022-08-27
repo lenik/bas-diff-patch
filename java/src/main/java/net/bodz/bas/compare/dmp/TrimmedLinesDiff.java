@@ -1,10 +1,14 @@
-package net.bodz.bas.compare.dmp.rowtype;
+package net.bodz.bas.compare.dmp;
 
 import net.bodz.bas.text.LinesText.Builder;
 import net.bodz.bas.text.row.IRow;
 
-public class ChoppedLinesType
-        extends LinesType {
+public class TrimmedLinesDiff
+        extends LinesDiff {
+
+    public TrimmedLinesDiff(Config config) {
+        super(config);
+    }
 
     @Override
     protected <T> void configParser(Builder options) {

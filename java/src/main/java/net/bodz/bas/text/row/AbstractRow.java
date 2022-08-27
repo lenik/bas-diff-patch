@@ -3,6 +3,8 @@ package net.bodz.bas.text.row;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import net.bodz.bas.text.Nullables;
+
 public abstract class AbstractRow<cell_t>
         implements
             IRow<cell_t> {

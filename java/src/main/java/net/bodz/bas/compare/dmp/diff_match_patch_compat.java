@@ -7,41 +7,36 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import net.bodz.bas.compare.dmp.DiffMatchPatch.Diff;
-import net.bodz.bas.compare.dmp.DiffMatchPatch.LinesToCharsResult;
-import net.bodz.bas.compare.dmp.DiffMatchPatch.Operation;
-import net.bodz.bas.compare.dmp.DiffMatchPatch.Patch;
-import net.bodz.bas.compare.dmp.rowtype.IDmpRowType;
 import net.bodz.bas.text.row.CharsView;
 import net.bodz.bas.text.row.IRow;
 
 public class diff_match_patch_compat {
 
-    public CharDiffPatch core = new CharDiffPatch();
-    IDmpRowType<? extends IRow<Character>, IRow<? extends Character>, Character> rowType = core.rowType;
+    public Config config = new Config();
+    CharsDiff diff = new CharsDiff(config);
 
-    _Diff conv(Diff<?> diff) {
+    _Diff conv(RowChangement<?> diff) {
         return new _Diff(diff.operation, diff.getTextAsString());
     }
 
-    Diff<Character> convR(_Diff diff) {
+    RowChangement<Character> convR(_Diff diff) {
         CharsView text = convText(diff.text);
-        return new Diff<Character>(diff.operation, text);
+        return new RowChangement<Character>(diff.operation, text);
     }
 
-    LinkedList<_Diff> convDiffs(List<Diff<Character>> o) {
+    LinkedList<_Diff> convDiffs(List<RowChangement<Character>> o) {
         if (o == null)
             return null;
         LinkedList<_Diff> list = new LinkedList<_Diff>();
-        for (Diff<Character> item : o)
+        for (RowChangement<Character> item : o)
             list.add(conv(item));
         return list;
     }
 
-    LinkedList<Diff<Character>> convDiffsR(List<_Diff> o) {
+    ChangeList<Character> convDiffsR(List<_Diff> o) {
         if (o == null)
             return null;
-        LinkedList<Diff<Character>> list = new LinkedList<Diff<Character>>();
+        ChangeList<Character> list = new ChangeList<Character>(diff);
         for (_Diff item : o)
             list.add(convR(item));
         return list;
@@ -62,7 +57,7 @@ public class diff_match_patch_compat {
     Patch<Character> convR(_Patch patch) {
         if (patch == null)
             return null;
-        Patch<Character> a = new Patch<Character>();
+        Patch<Character> a = new Patch<Character>(diff);
         a.diffs = convDiffsR(patch.diffs);
         a.length1 = patch.length1;
         a.length2 = patch.length2;
@@ -80,10 +75,10 @@ public class diff_match_patch_compat {
         return list;
     }
 
-    LinkedList<Patch<Character>> convPatchesR(List<_Patch> o) {
+    PatchList<Character> convPatchesR(List<_Patch> o) {
         if (o == null)
             return null;
-        LinkedList<Patch<Character>> list = new LinkedList<Patch<Character>>();
+        PatchList<Character> list = new PatchList<Character>(diff);
         for (_Patch item : o)
             list.add(convR(item));
         return list;
@@ -94,7 +89,7 @@ public class diff_match_patch_compat {
     }
 
     String convText(CharsView text) {
-        return text == null ? null : rowType.format(text);
+        return text == null ? null : diff.format(text);
     }
 
     List<String> convText(List<CharsView> text) {
@@ -118,103 +113,106 @@ public class diff_match_patch_compat {
     public LinkedList<_Diff> diff_main(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convDiffs(core.diff_main(text1, text2));
+        return convDiffs(diff.compare(text1, text2, true));
     }
 
     public LinkedList<_Diff> diff_main(String _text1, String _text2, boolean checklines) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convDiffs(core.diff_main(text1, text2, checklines));
+        return convDiffs(diff.compare(text1, text2, checklines));
     }
 
     public LinkedList<_Diff> diff_bisect(String _text1, String _text2, long deadline) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convDiffs(core.diff_bisect(text1, text2, deadline));
+        return convDiffs(diff.diff_bisect(text1, text2, deadline));
     }
+
+    IntCharsDiff INT_CHARS = new IntCharsDiff(config);
 
     protected _LinesToCharsResult diff_linesToChars(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        LinesToCharsResult<Character> result = core.diff_linesToChars(text1, text2);
+        LinesToCharsResult<Character> result = diff.packer.linesToChars(text1, text2);
         List<String> lineArray = new ArrayList<String>();
         for (IRow<Character> line : result.lineArray)
-            lineArray.add(rowType.format(line));
+            lineArray.add(diff.format(line));
+
         return new _LinesToCharsResult( //
-                result.chars1.toString(), //
-                result.chars2.toString(), //
+                INT_CHARS.format(result.chars1), //
+                INT_CHARS.format(result.chars2), //
                 lineArray);
     }
 
     public int diff_commonPrefix(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return core.diff_commonPrefix(text1, text2);
+        return RowUtils.commonPrefix(text1, text2);
     }
 
     public int diff_commonSuffix(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return core.diff_commonSuffix(text1, text2);
+        return RowUtils.commonSuffix(text1, text2);
     }
 
     protected int diff_commonOverlap(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return core.diff_commonOverlap(text1, text2);
+        return RowUtils.commonOverlap(text1, text2);
     }
 
     protected String[] diff_halfMatch(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        HalfMatch<Character> hm = core.diff_halfMatch(text1, text2);
+        HalfMatch<Character> hm = RowUtils.halfMatch(config, text1, text2);
         return hm == null ? null
                 : new String[] { //
-                        rowType.format(hm.prefix1), //
-                        rowType.format(hm.suffix1), //
-                        rowType.format(hm.prefix2), //
-                        rowType.format(hm.suffix2), //
-                        rowType.format(hm.common), //
+                        diff.format(hm.prefix1), //
+                        diff.format(hm.suffix1), //
+                        diff.format(hm.prefix2), //
+                        diff.format(hm.suffix2), //
+                        diff.format(hm.common), //
                 };
     }
 
     public String diff_text1(List<_Diff> _diffs) {
-        LinkedList<Diff<Character>> diffs = convDiffsR(_diffs);
-        return rowType.format(core.diff_text1(diffs));
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        return diff.format(diffs.text1());
     }
 
     public String diff_text2(List<_Diff> _diffs) {
-        LinkedList<Diff<Character>> diffs = convDiffsR(_diffs);
-        return rowType.format(core.diff_text2(diffs));
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        return diff.format(diffs.text2());
     }
 
     public LinkedList<_Diff> diff_fromDelta(String _text1, String delta)
             throws IllegalArgumentException {
         CharsView text1 = convText(_text1);
-        return convDiffs(core.diff_fromDelta(text1, delta));
+        return convDiffs(ChangeList.fromDelta(diff, text1, delta));
     }
 
     public int match_main(String _text, String _pattern, int loc) {
         CharsView text = convText(_text);
         CharsView pattern = convText(_pattern);
-        return core.match_main(text, pattern, loc);
+        return diff.matcher().search(text, pattern, loc);
     }
 
     protected int match_bitap(String _text, String _pattern, int loc) {
         CharsView text = convText(_text);
         CharsView pattern = convText(_pattern);
-        return core.match_bitap(text, pattern, loc);
+        return diff.matcher().bitap(text, pattern, loc);
     }
 
     protected Map<Character, Integer> match_alphabet(String _pattern) {
         CharsView pattern = convText(_pattern);
-        return core.match_alphabet(pattern);
+        return diff.matcher().alphabet(pattern);
     }
 
     protected void patch_addContext(_Patch _patch, String _text) {
         CharsView text = convText(_text);
         Patch<Character> patch = convR(_patch);
-        core.patch_addContext(patch, text);
+        patch.addContext(text);
         _Patch _patch2 = conv(patch);
         _patch.init(_patch2);
     }
@@ -222,36 +220,29 @@ public class diff_match_patch_compat {
     public LinkedList<_Patch> patch_make(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convPatches(core.patch_make(text1, text2));
+        return convPatches(diff.compare(text1, text2).createPatch(text1));
     }
 
-    @Deprecated
-    public LinkedList<_Patch> patch_make(String _text1, String _text2, LinkedList<_Diff> diffs) {
+    public LinkedList<_Patch> patch_make(String _text1, LinkedList<_Diff> _diffs) {
         CharsView text1 = convText(_text1);
-        CharsView text2 = convText(_text2);
-        LinkedList<Patch<Character>> patches = core.patch_make(text1, text2, convDiffsR(diffs));
-        return convPatches(patches);
-    }
-
-    public LinkedList<_Patch> patch_make(String _text1, LinkedList<_Diff> diffs) {
-        CharsView text1 = convText(_text1);
-        LinkedList<Patch<Character>> patches = core.patch_make(text1, convDiffsR(diffs));
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        PatchList<Character> patches = diffs.createPatch(text1);
         return convPatches(patches);
     }
 
     public Object[] patch_apply(LinkedList<_Patch> patches, String _text) {
         CharsView text = convText(_text);
-        PatchApplyResult<Character> result = core.patch_apply(convPatchesR(patches), text);
-        return new Object[] { rowType.format(result.text), result.results };
+        PatchApplyResult<Character> result = convPatchesR(patches).apply(text);
+        return new Object[] { diff.format(result.text), result.results };
     }
 
     public String patch_addPadding(LinkedList<_Patch> _patches) {
-        LinkedList<Patch<Character>> patches = convPatchesR(_patches);
-        IRow<Character> retval = core.patch_addPadding(patches);
+        PatchList<Character> patches = convPatchesR(_patches);
+        IRow<Character> retval = patches.addPadding();
         LinkedList<_Patch> _patches2 = convPatches(patches);
         _patches.clear();
         _patches.addAll(_patches2);
-        return rowType.format(retval);
+        return diff.format(retval);
     }
 
     protected static class _LinesToCharsResult {
@@ -423,7 +414,7 @@ public class diff_match_patch_compat {
                     throw new Error("This system does not support UTF-8.", e);
                 }
             }
-            return DiffMatchPatch.unescapeForEncodeUriCompatability(text.toString());
+            return UriUtils.unescapeForEncodeUriCompatability(text.toString());
         }
     }
 
@@ -439,76 +430,77 @@ public class diff_match_patch_compat {
     }
 
     public void diff_cleanupSemantic(LinkedList<_Diff> _diffs) {
-        LinkedList<Diff<Character>> diffs = convDiffsR(_diffs);
-        core.diff_cleanupSemantic(diffs);
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        diffs.cleanupSemantic();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
         _diffs.addAll(_diffs2);
     }
 
     public void diff_cleanupSemanticLossless(LinkedList<_Diff> _diffs) {
-        LinkedList<Diff<Character>> diffs = convDiffsR(_diffs);
-        core.diff_cleanupSemanticLossless(diffs);
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        diffs.cleanupSemanticLossless();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
         _diffs.addAll(_diffs2);
     }
 
     public void diff_cleanupEfficiency(LinkedList<_Diff> _diffs) {
-        LinkedList<Diff<Character>> diffs = convDiffsR(_diffs);
-        core.diff_cleanupEfficiency(diffs);
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        diffs.cleanupEfficiency();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
         _diffs.addAll(_diffs2);
     }
 
     public void diff_cleanupMerge(LinkedList<_Diff> _diffs) {
-        LinkedList<Diff<Character>> diffs = convDiffsR(_diffs);
-        core.diff_cleanupMerge(diffs);
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        diffs.cleanupMerge();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
         _diffs.addAll(_diffs2);
     }
 
     public int diff_xIndex(List<_Diff> diffs, int loc) {
-        return core.diff_xIndex(convDiffsR(diffs), loc);
+        return convDiffsR(diffs).xIndex(loc);
     }
 
     public String diff_prettyHtml(List<_Diff> diffs) {
-        return core.diff_prettyHtml(convDiffsR(diffs));
+        return convDiffsR(diffs).prettyHtml();
     }
 
     public int diff_levenshtein(List<_Diff> diffs) {
-        return core.diff_levenshtein(convDiffsR(diffs));
+        return convDiffsR(diffs).levenshtein();
     }
 
     public String diff_toDelta(List<_Diff> diffs) {
-        return core.diff_toDelta(convDiffsR(diffs));
+        return convDiffsR(diffs).toDelta();
     }
 
-    public LinkedList<_Patch> patch_make(LinkedList<_Diff> diffs) {
-        return convPatches(core.patch_make(convDiffsR(diffs)));
+    public LinkedList<_Patch> patch_make(LinkedList<_Diff> _diffs) {
+        ChangeList<Character> diffs = convDiffsR(_diffs);
+        return convPatches(diffs.createPatch());
     }
 
     public LinkedList<_Patch> patch_deepCopy(LinkedList<_Patch> patches) {
-        return convPatches(core.patch_deepCopy(convPatchesR(patches)));
+        return convPatches(convPatchesR(patches).deepCopy());
     }
 
     public void patch_splitMax(LinkedList<_Patch> _patches) {
-        LinkedList<Patch<Character>> patches = convPatchesR(_patches);
-        core.patch_splitMax(patches);
+        PatchList<Character> patches = convPatchesR(_patches);
+        patches.splitMax();
         LinkedList<_Patch> _patches2 = convPatches(patches);
         _patches.clear();
         _patches.addAll(_patches2);
     }
 
     public String patch_toText(List<_Patch> patches) {
-        return core.patch_toText(convPatchesR(patches));
+        return convPatchesR(patches).toText();
     }
 
     public List<_Patch> patch_fromText(String patchcode)
             throws IllegalArgumentException {
-        return convPatches(core.patch_fromText(patchcode));
+        return convPatches(PatchList.fromText(diff, patchcode));
     }
 
 }

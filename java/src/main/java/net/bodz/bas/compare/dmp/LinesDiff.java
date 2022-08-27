@@ -1,30 +1,17 @@
-package net.bodz.bas.compare.dmp.rowtype;
+package net.bodz.bas.compare.dmp;
 
-import net.bodz.bas.compare.dmp.DiffMatchPatch;
 import net.bodz.bas.text.LinesText;
 import net.bodz.bas.text.LinesText.Builder;
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.StringRow;
 
-public class LinesType
-        implements
-            IDmpRowType<StringRow, IRow<? extends String>, String> {
+public class LinesDiff
+        extends DMPDiff<String> {
 
     boolean useUnicodeFormFeed = false;
 
-    @Override
-    public String separator() {
-        if (useUnicodeFormFeed)
-            return "\u21A1"; // form feed
-        else
-            // page break ^L, 0x0C
-            // Often, it will also cause a carriage return.
-            return "\f";
-    }
-
-    @Override
-    public StringRow newRow() {
-        return new StringRow();
+    public LinesDiff(Config config) {
+        super(config);
     }
 
     protected <T> void configParser(LinesText.Builder options) {
@@ -34,7 +21,7 @@ public class LinesType
 
     @Override
     public StringRow parse(String s) {
-        StringRow row = newRow();
+        StringRow row = new StringRow();
         Builder builder = new LinesText.Builder();
         configParser(builder);
         for (String line : builder.build())
@@ -54,12 +41,22 @@ public class LinesType
     }
 
     @Override
-    public String createPadding() {
+    protected String separator() {
+        if (useUnicodeFormFeed)
+            return "\u21A1"; // form feed
+        else
+            // page break ^L, 0x0C
+            // Often, it will also cause a carriage return.
+            return "\f";
+    }
+
+    @Override
+    protected String createPadding() {
         return "#";
     }
 
     @Override
-    public String createPadding(int hint) {
+    protected String createPadding(int hint) {
         return "#" + String.valueOf(hint);
     }
 
@@ -67,7 +64,7 @@ public class LinesType
     public int cleanupSemanticScore(IRow<? extends String> one, IRow<? extends String> two) {
         String s1 = format(one);
         String s2 = format(two);
-        return DiffMatchPatch.diff_cleanupSemanticScore(s1, s2);
+        return StringStats.diff_cleanupSemanticScore(s1, s2);
     }
 
 }

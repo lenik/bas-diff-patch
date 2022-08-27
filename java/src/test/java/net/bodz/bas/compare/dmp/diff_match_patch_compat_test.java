@@ -32,7 +32,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import net.bodz.bas.compare.dmp.DiffMatchPatch.Operation;
 import net.bodz.bas.compare.dmp.diff_match_patch_compat._Diff;
 import net.bodz.bas.compare.dmp.diff_match_patch_compat._LinesToCharsResult;
 import net.bodz.bas.compare.dmp.diff_match_patch_compat._Patch;
@@ -40,7 +39,7 @@ import net.bodz.bas.compare.dmp.diff_match_patch_compat._Patch;
 public class diff_match_patch_compat_test {
 
     private static diff_match_patch_compat dmp;
-    private static DiffMatchPatch<?> _dmp;
+    private static Config config;
     private static Operation DELETE = Operation.DELETE;
     private static Operation EQUAL = Operation.EQUAL;
     private static Operation INSERT = Operation.INSERT;
@@ -82,7 +81,7 @@ public class diff_match_patch_compat_test {
 
     public static void testDiffHalfmatch() {
         // Detect a halfmatch.
-        _dmp.Diff_Timeout = 1;
+        config.Diff_Timeout = 1;
         assertNull("diff_halfMatch: No match #1.", dmp.diff_halfMatch("1234567890", "abcdef"));
 
         assertNull("diff_halfMatch: No match #2.", dmp.diff_halfMatch("12345", "23"));
@@ -116,7 +115,7 @@ public class diff_match_patch_compat_test {
                 new String[] { "qHillo", "w", "x", "Hulloy", "HelloHe" },
                 dmp.diff_halfMatch("qHilloHelloHew", "xHelloHeHulloy"));
 
-        _dmp.Diff_Timeout = 0;
+        config.Diff_Timeout = 0;
         assertNull("diff_halfMatch: Optimal no halfmatch.", dmp.diff_halfMatch("qHilloHelloHew", "xHelloHeHulloy"));
     }
 
@@ -400,7 +399,7 @@ public class diff_match_patch_compat_test {
 
     public static void testDiffCleanupEfficiency() {
         // Cleanup operationally trivial equalities.
-        _dmp.Diff_EditCost = 4;
+        config.Diff_EditCost = 4;
         LinkedList<_Diff> diffs = diffList();
         dmp.diff_cleanupEfficiency(diffs);
         assertEquals("diff_cleanupEfficiency: Null case.", diffList(), diffs);
@@ -430,13 +429,13 @@ public class diff_match_patch_compat_test {
         assertEquals("diff_cleanupEfficiency: Backpass elimination.",
                 diffList(new _Diff(DELETE, "abxyzcd"), new _Diff(INSERT, "12xy34z56")), diffs);
 
-        _dmp.Diff_EditCost = 5;
+        config.Diff_EditCost = 5;
         diffs = diffList(new _Diff(DELETE, "ab"), new _Diff(INSERT, "12"), new _Diff(EQUAL, "wxyz"),
                 new _Diff(DELETE, "cd"), new _Diff(INSERT, "34"));
         dmp.diff_cleanupEfficiency(diffs);
         assertEquals("diff_cleanupEfficiency: High cost elimination.",
                 diffList(new _Diff(DELETE, "abwxyzcd"), new _Diff(INSERT, "12wxyz34")), diffs);
-        _dmp.Diff_EditCost = 4;
+        config.Diff_EditCost = 4;
     }
 
     public static void testDiffPrettyHtml() {
@@ -593,7 +592,7 @@ public class diff_match_patch_compat_test {
 
         // Perform a real diff.
         // Switch off the timeout.
-        _dmp.Diff_Timeout = 0;
+        config.Diff_Timeout = 0;
         diffs = diffList(new _Diff(DELETE, "a"), new _Diff(INSERT, "b"));
         assertEquals("diff_main: Simple case #1.", diffs, dmp.diff_main("a", "b", false));
 
@@ -624,7 +623,7 @@ public class diff_match_patch_compat_test {
         assertEquals("diff_main: Large equality.", diffs,
                 dmp.diff_main("a [[Pennsylvania]] and [[New", " and [[Pennsylvania]]", false));
 
-        _dmp.Diff_Timeout = 0.1f; // 100ms
+        config.Diff_Timeout = 0.1f; // 100ms
         String a = "`Twas brillig, and the slithy toves\nDid gyre and gimble in the wabe:\nAll mimsy were the borogoves,\nAnd the mome raths outgrabe.\n";
         String b = "I am the very model of a modern major general,\nI've information vegetable, animal, and mineral,\nI know the kings of England, and I quote the fights historical,\nFrom Marathon to Waterloo, in order categorical.\n";
         // Increase the text lengths by 1024 times to ensure a timeout.
@@ -637,12 +636,12 @@ public class diff_match_patch_compat_test {
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         // Test that we took at least the timeout period.
-        assertTrue("diff_main: Timeout min.", _dmp.Diff_Timeout * 1000 <= duration);
+        assertTrue("diff_main: Timeout min.", config.Diff_Timeout * 1000 <= duration);
         // Test that we didn't take forever (be forgiving).
         // Theoretically this test could fail very occasionally if the
         // OS task swaps or locks up for a second at the wrong moment.
 //        assertTrue("diff_main: Timeout max.", _dmp.Diff_Timeout * 1000 * 2 > duration);
-        _dmp.Diff_Timeout = 0;
+        config.Diff_Timeout = 0;
 
         // Test the linemode speedup.
         // Must be long to pass the 100 char cutoff.
@@ -689,8 +688,8 @@ public class diff_match_patch_compat_test {
 
     public static void testMatchBitap() {
         // Bitap algorithm.
-        _dmp.Match_Distance = 100;
-        _dmp.Match_Threshold = 0.5f;
+        config.Match_Distance = 100;
+        config.Match_Threshold = 0.5f;
         assertEquals("match_bitap: Exact match #1.", 5, dmp.match_bitap("abcdefghijk", "fgh", 5));
 
         assertEquals("match_bitap: Exact match #2.", 5, dmp.match_bitap("abcdefghijk", "fgh", 0));
@@ -709,28 +708,28 @@ public class diff_match_patch_compat_test {
 
         assertEquals("match_bitap: Oversized pattern.", 0, dmp.match_bitap("abcdef", "xabcdefy", 0));
 
-        _dmp.Match_Threshold = 0.4f;
+        config.Match_Threshold = 0.4f;
         assertEquals("match_bitap: Threshold #1.", 4, dmp.match_bitap("abcdefghijk", "efxyhi", 1));
 
-        _dmp.Match_Threshold = 0.3f;
+        config.Match_Threshold = 0.3f;
         assertEquals("match_bitap: Threshold #2.", -1, dmp.match_bitap("abcdefghijk", "efxyhi", 1));
 
-        _dmp.Match_Threshold = 0.0f;
+        config.Match_Threshold = 0.0f;
         assertEquals("match_bitap: Threshold #3.", 1, dmp.match_bitap("abcdefghijk", "bcdef", 1));
 
-        _dmp.Match_Threshold = 0.5f;
+        config.Match_Threshold = 0.5f;
         assertEquals("match_bitap: Multiple select #1.", 0, dmp.match_bitap("abcdexyzabcde", "abccde", 3));
 
         assertEquals("match_bitap: Multiple select #2.", 8, dmp.match_bitap("abcdexyzabcde", "abccde", 5));
 
-        _dmp.Match_Distance = 10; // Strict location.
+        config.Match_Distance = 10; // Strict location.
         assertEquals("match_bitap: Distance test #1.", -1,
                 dmp.match_bitap("abcdefghijklmnopqrstuvwxyz", "abcdefg", 24));
 
         assertEquals("match_bitap: Distance test #2.", 0,
                 dmp.match_bitap("abcdefghijklmnopqrstuvwxyz", "abcdxxefg", 1));
 
-        _dmp.Match_Distance = 1000; // Loose location.
+        config.Match_Distance = 1000; // Loose location.
         assertEquals("match_bitap: Distance test #3.", 0, dmp.match_bitap("abcdefghijklmnopqrstuvwxyz", "abcdefg", 24));
     }
 
@@ -748,10 +747,10 @@ public class diff_match_patch_compat_test {
 
         assertEquals("match_main: Oversized pattern.", 0, dmp.match_main("abcdef", "abcdefy", 0));
 
-        _dmp.Match_Threshold = 0.7f;
+        config.Match_Threshold = 0.7f;
         assertEquals("match_main: Complex match.", 4,
                 dmp.match_main("I am the very model of a modern major general.", " that berry ", 5));
-        _dmp.Match_Threshold = 0.5f;
+        config.Match_Threshold = 0.5f;
 
         // Test null inputs.
         try {
@@ -814,7 +813,7 @@ public class diff_match_patch_compat_test {
     }
 
     public static void testPatchAddContext() {
-        _dmp.Patch_Margin = 4;
+        config.Patch_Margin = 4;
         _Patch p;
         p = dmp.patch_fromText("@@ -21,4 +21,10 @@\n-jump\n+somersault\n").get(0);
         dmp.patch_addContext(p, "The quick brown fox jumps over the lazy dog.");
@@ -860,9 +859,6 @@ public class diff_match_patch_compat_test {
 
         patches = dmp.patch_make(text1, diffs);
         assertEquals("patch_make: Text1+Diff inputs.", expectedPatch, dmp.patch_toText(patches));
-
-        patches = dmp.patch_make(text1, text2, diffs);
-        assertEquals("patch_make: Text1+Text2+Diff inputs (deprecated).", expectedPatch, dmp.patch_toText(patches));
 
         patches = dmp.patch_make("`1234567890-=[]\\;',./", "~!@#$%^&*()_+{}|:\"<>?");
         assertEquals("patch_toText: Character encoding.",
@@ -947,9 +943,9 @@ public class diff_match_patch_compat_test {
     }
 
     public static void testPatchApply() {
-        _dmp.Match_Distance = 1000;
-        _dmp.Match_Threshold = 0.5f;
-        _dmp.Patch_DeleteThreshold = 0.5f;
+        config.Match_Distance = 1000;
+        config.Match_Threshold = 0.5f;
+        config.Patch_DeleteThreshold = 0.5f;
         LinkedList<_Patch> patches;
         patches = dmp.patch_make("", "");
         Object[] results = dmp.patch_apply(patches, "Hello world.");
@@ -993,18 +989,18 @@ public class diff_match_patch_compat_test {
                 "xabc12345678901234567890---------------++++++++++---------------12345678901234567890y\tfalse\ttrue",
                 resultStr);
 
-        _dmp.Patch_DeleteThreshold = 0.6f;
+        config.Patch_DeleteThreshold = 0.6f;
         patches = dmp.patch_make("x1234567890123456789012345678901234567890123456789012345678901234567890y", "xabcy");
         results = dmp.patch_apply(patches,
                 "x12345678901234567890---------------++++++++++---------------12345678901234567890y");
         boolArray = (boolean[]) results[1];
         resultStr = results[0] + "\t" + boolArray[0] + "\t" + boolArray[1];
         assertEquals("patch_apply: Big delete, big change 2.", "xabcy\ttrue\ttrue", resultStr);
-        _dmp.Patch_DeleteThreshold = 0.5f;
+        config.Patch_DeleteThreshold = 0.5f;
 
         // Compensate for failed patch.
-        _dmp.Match_Threshold = 0.0f;
-        _dmp.Match_Distance = 0;
+        config.Match_Threshold = 0.0f;
+        config.Match_Distance = 0;
         patches = dmp.patch_make("abcdefghijklmnopqrstuvwxyz--------------------1234567890", //
                 "abcXXXXXXXXXXdefghijklmnopqrstuvwxyz--------------------1234567YYYYYYYYYY890");
         results = dmp.patch_apply(patches, "ABCDEFGHIJKLMNOPQRSTUVWXYZ--------------------1234567890");
@@ -1012,8 +1008,8 @@ public class diff_match_patch_compat_test {
         resultStr = results[0] + "\t" + boolArray[0] + "\t" + boolArray[1];
         assertEquals("patch_apply: Compensate for failed patch.",
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ--------------------1234567YYYYYYYYYY890\tfalse\ttrue", resultStr);
-        _dmp.Match_Threshold = 0.5f;
-        _dmp.Match_Distance = 1000;
+        config.Match_Threshold = 0.5f;
+        config.Match_Distance = 1000;
 
         patches = dmp.patch_make("", "test");
         String patchStr = dmp.patch_toText(patches);
@@ -1099,7 +1095,7 @@ public class diff_match_patch_compat_test {
 
     public static void main(String args[]) {
         dmp = new diff_match_patch_compat();
-        _dmp = dmp.core;
+        config = dmp.config;
 
         testDiffCommonPrefix();
         testDiffCommonSuffix();

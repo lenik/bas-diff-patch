@@ -1,11 +1,9 @@
 package net.bodz.bas.text.row;
 
-public interface IRowType<mutable_t extends IRow<?>, view_t extends IRow<?>> {
+public interface IRowType<cell_t> {
 
-    mutable_t newRow();
+    IRow<cell_t> parse(String s);
 
-    mutable_t parse(String s);
-
-    String format(view_t row);
+    String format(IRow<? extends cell_t> row);
 
 }

@@ -1,16 +1,21 @@
-package net.bodz.bas.compare.dmp.rowtype;
+package net.bodz.bas.compare.dmp;
 
 import java.util.StringTokenizer;
 
-import net.bodz.bas.compare.dmp.DiffMatchPatch;
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.IntegerRow;
 
-public class CsvIntegersType
-        implements
-            IDmpRowType<IntegerRow, IRow<? extends Integer>, Integer> {
+/**
+ * Comma-separated Integers
+ */
+public class CsIntsDiff
+        extends DMPDiff<Integer> {
 
     public static final int SEP = -1;
+
+    public CsIntsDiff(Config config) {
+        super(config);
+    }
 
     @Override
     public Integer separator() {
@@ -18,13 +23,8 @@ public class CsvIntegersType
     }
 
     @Override
-    public IntegerRow newRow() {
-        return new IntegerRow();
-    }
-
-    @Override
     public IntegerRow parse(String s) {
-        IntegerRow buf = newRow();
+        IntegerRow buf = new IntegerRow();
         StringTokenizer tokens = new StringTokenizer(",");
         while (tokens.hasMoreTokens()) {
             String token = tokens.nextToken();
@@ -60,7 +60,7 @@ public class CsvIntegersType
     public int cleanupSemanticScore(IRow<? extends Integer> one, IRow<? extends Integer> two) {
         String s1 = format(one);
         String s2 = format(two);
-        return DiffMatchPatch.diff_cleanupSemanticScore(s1, s2);
+        return StringStats.diff_cleanupSemanticScore(s1, s2);
     }
 
 }
