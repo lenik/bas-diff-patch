@@ -104,16 +104,16 @@ public class RowPacker<cell_t> {
      * @param lineArray
      *            List of unique strings.
      */
-    public <T extends cell_t> ChangeList<T> charsToLines(List<RowChangement<Integer>> diffs,
+    public <T extends cell_t> ChangeList<cell_t> charsToLines(List<RowChangement<Integer>> diffs,
             List<? extends IRow<T>> lineArray) {
-        ChangeList<T> result = new ChangeList<T>(diff);
+        ChangeList<cell_t> result = new ChangeList<cell_t>(diff);
         for (RowChangement<Integer> diff : diffs) {
             MutableRow<T> text = new MutableRow<T>();
             for (int j = 0; j < diff.text.length(); j++) {
                 Integer index = diff.text.cellAt(j);
                 text.append(lineArray.get(index));
             }
-            result.add(new RowChangement<T>(diff.operation, text));
+            result.addConst(new RowChangement<T>(diff.operation, text));
         }
         return result;
     }

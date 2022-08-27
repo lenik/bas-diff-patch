@@ -879,14 +879,6 @@ public class diff_match_patch_compat_test {
         expectedPatch = "@@ -573,28 +573,31 @@\n cdefabcdefabcdefabcdefabcdef\n+123\n";
         patches = dmp.patch_make(text1, text2);
         assertEquals("patch_make: Long string with repeats.", expectedPatch, dmp.patch_toText(patches));
-
-        // Test null inputs.
-        try {
-            dmp.patch_make(null);
-            fail("patch_make: Null inputs.");
-        } catch (IllegalArgumentException ex) {
-            // Error expected.
-        }
     }
 
     public static void testPatchSplitMax() {

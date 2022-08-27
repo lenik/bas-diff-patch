@@ -31,15 +31,15 @@ public abstract class DMPDiff<cell_t>
     protected abstract cell_t createPadding(int hint);
 
     @Override
-    public <T extends cell_t> ChangeList<T> compare(IRow<T> row1, IRow<T> row2) {
+    public <T extends cell_t> ChangeList<cell_t> compare(IRow<T> row1, IRow<T> row2) {
         return compare(row1, row2, false);
     }
 
-    public <T extends cell_t> ChangeList<T> comparePacked(IRow<T> row1, IRow<T> row2) {
+    public <T extends cell_t> ChangeList<cell_t> comparePacked(IRow<T> row1, IRow<T> row2) {
         return compare(row1, row2, true);
     }
 
-    public <T extends cell_t> ChangeList<T> compare(IRow<T> row1, IRow<T> row2, boolean packed) {
+    public <T extends cell_t> ChangeList<cell_t> compare(IRow<T> row1, IRow<T> row2, boolean packed) {
         // Set a deadline by which time the diff must be complete.
         long deadline;
         if (config.Diff_Timeout <= 0) {
@@ -66,18 +66,18 @@ public abstract class DMPDiff<cell_t>
      *            Users should set DiffTimeout instead.
      * @return Linked List of Diff objects.
      */
-    <T extends cell_t> ChangeList<T> compareImpl(IRow<T> text1, IRow<T> text2, boolean checklines, long deadline) {
+    <T extends cell_t> ChangeList<cell_t> compareImpl(IRow<T> text1, IRow<T> text2, boolean checklines, long deadline) {
         // Check for null inputs.
         if (text1 == null || text2 == null) {
             throw new IllegalArgumentException("Null inputs. (diff_main)");
         }
 
         // Check for equality (speedup).
-        ChangeList<T> diffs;
+        ChangeList<cell_t> diffs;
         if (text1.equals(text2)) {
-            diffs = new ChangeList<T>(this);
+            diffs = new ChangeList<cell_t>(this);
             if (text1.length() != 0) {
-                diffs.add(new RowChangement<T>(Operation.EQUAL, text1));
+                diffs.addConst(new RowChangement<T>(Operation.EQUAL, text1));
             }
             return diffs;
         }
@@ -99,10 +99,10 @@ public abstract class DMPDiff<cell_t>
 
         // Restore the prefix and suffix.
         if (commonprefix.length() != 0) {
-            diffs.addFirst(new RowChangement<T>(Operation.EQUAL, commonprefix));
+            diffs.addFirstConst(new RowChangement<T>(Operation.EQUAL, commonprefix));
         }
         if (commonsuffix.length() != 0) {
-            diffs.addLast(new RowChangement<T>(Operation.EQUAL, commonsuffix));
+            diffs.addLastConst(new RowChangement<T>(Operation.EQUAL, commonsuffix));
         }
 
         diffs.cleanupMerge();
@@ -124,19 +124,19 @@ public abstract class DMPDiff<cell_t>
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private <T extends cell_t> ChangeList<T> diff_compute(IRow<T> text1, IRow<T> text2, boolean checklines,
+    private <T extends cell_t> ChangeList<cell_t> diff_compute(IRow<T> text1, IRow<T> text2, boolean checklines,
             long deadline) {
-        ChangeList<T> diffs = new ChangeList<T>(this);
+        ChangeList<cell_t> diffs = new ChangeList<cell_t>(this);
 
         if (text1.length() == 0) {
             // Just add some text (speedup).
-            diffs.add(new RowChangement<T>(Operation.INSERT, text2));
+            diffs.addConst(new RowChangement<T>(Operation.INSERT, text2));
             return diffs;
         }
 
         if (text2.length() == 0) {
             // Just delete some text (speedup).
-            diffs.add(new RowChangement<T>(Operation.DELETE, text1));
+            diffs.addConst(new RowChangement<T>(Operation.DELETE, text1));
             return diffs;
         }
 
@@ -146,17 +146,17 @@ public abstract class DMPDiff<cell_t>
         if (i != -1) {
             // Shorter text is inside the longer text (speedup).
             Operation op = (text1.length() > text2.length()) ? Operation.DELETE : Operation.INSERT;
-            diffs.add(new RowChangement<T>(op, longtext.slice(0, i)));
-            diffs.add(new RowChangement<T>(Operation.EQUAL, shorttext));
-            diffs.add(new RowChangement<T>(op, longtext.slice(i + shorttext.length(), longtext.length())));
+            diffs.addConst(new RowChangement<T>(op, longtext.slice(0, i)));
+            diffs.addConst(new RowChangement<T>(Operation.EQUAL, shorttext));
+            diffs.addConst(new RowChangement<T>(op, longtext.slice(i + shorttext.length(), longtext.length())));
             return diffs;
         }
 
         if (shorttext.length() == 1) {
             // Single character string.
             // After the previous speedup, the character can't be an equality.
-            diffs.add(new RowChangement<T>(Operation.DELETE, text1));
-            diffs.add(new RowChangement<T>(Operation.INSERT, text2));
+            diffs.addConst(new RowChangement<T>(Operation.DELETE, text1));
+            diffs.addConst(new RowChangement<T>(Operation.INSERT, text2));
             return diffs;
         }
 
@@ -170,11 +170,11 @@ public abstract class DMPDiff<cell_t>
             IRow<T> text2_b = hm.suffix2;
             IRow<T> mid_common = hm.common;
             // Send both pairs off for separate processing.
-            ChangeList<T> diffs_a = compareImpl(text1_a, text2_a, checklines, deadline);
-            ChangeList<T> diffs_b = compareImpl(text1_b, text2_b, checklines, deadline);
+            ChangeList<cell_t> diffs_a = compareImpl(text1_a, text2_a, checklines, deadline);
+            ChangeList<cell_t> diffs_b = compareImpl(text1_b, text2_b, checklines, deadline);
             // Merge the results.
             diffs = diffs_a;
-            diffs.add(new RowChangement<T>(Operation.EQUAL, mid_common));
+            diffs.addConst(new RowChangement<T>(Operation.EQUAL, mid_common));
             diffs.addAll(diffs_b);
             return diffs;
         }
@@ -198,7 +198,7 @@ public abstract class DMPDiff<cell_t>
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private <T extends cell_t> ChangeList<T> diff_lineMode(IRow<T> text1, IRow<T> text2, long deadline) {
+    private <T extends cell_t> ChangeList<cell_t> diff_lineMode(IRow<T> text1, IRow<T> text2, long deadline) {
         // Scan the text on a line-by-line basis first.
         LinesToCharsResult<T> a = packer.linesToChars(text1, text2);
         List<IRow<T>> linearray = a.lineArray;
@@ -208,19 +208,19 @@ public abstract class DMPDiff<cell_t>
                 intCharsDiff.compareImpl(a.chars1, a.chars2, false, deadline);
 
         // Convert the diff back to original text.
-        ChangeList<T> diffs = packer.charsToLines(atom_diffs, linearray);
+        ChangeList<cell_t> diffs = packer.charsToLines(atom_diffs, linearray);
         // Eliminate freak matches (e.g. blank lines)
         diffs.cleanupSemantic();
 
         // Rediff any replacement blocks, this time character-by-character.
         // Add a dummy entry at the end.
-        diffs.add(new RowChangement<T>(Operation.EQUAL, Rows.<T> empty()));
+        diffs.addConst(new RowChangement<T>(Operation.EQUAL, Rows.<T> empty()));
         int count_delete = 0;
         int count_insert = 0;
-        MutableRow<T> text_delete = new MutableRow<T>();
-        MutableRow<T> text_insert = new MutableRow<T>();
-        ListIterator<RowChangement<T>> pointer = diffs.listIterator();
-        RowChangement<T> thisDiff = pointer.next();
+        MutableRow<cell_t> text_delete = new MutableRow<cell_t>();
+        MutableRow<cell_t> text_insert = new MutableRow<cell_t>();
+        ListIterator<RowChangement<cell_t>> pointer = diffs.listIterator();
+        RowChangement<cell_t> thisDiff = pointer.next();
         while (thisDiff != null) {
             switch (thisDiff.operation) {
             case INSERT:
@@ -240,7 +240,7 @@ public abstract class DMPDiff<cell_t>
                         pointer.previous();
                         pointer.remove();
                     }
-                    for (RowChangement<T> subDiff : compareImpl(text_delete, text_insert, false, deadline)) {
+                    for (RowChangement<cell_t> subDiff : compareImpl(text_delete, text_insert, false, deadline)) {
                         pointer.add(subDiff);
                     }
                 }
@@ -269,7 +269,7 @@ public abstract class DMPDiff<cell_t>
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    <T extends cell_t> ChangeList<T> diff_bisect(IRow<T> text1, IRow<T> text2, long deadline) {
+    <T extends cell_t> ChangeList<cell_t> diff_bisect(IRow<T> text1, IRow<T> text2, long deadline) {
         // Cache the text lengths to prevent multiple calls.
         int text1_length = text1.length();
         int text2_length = text2.length();
@@ -373,9 +373,9 @@ public abstract class DMPDiff<cell_t>
         }
         // Diff took too long and hit the deadline or
         // number of diffs equals number of characters, no commonality at all.
-        ChangeList<T> diffs = new ChangeList<T>(this);
-        diffs.add(new RowChangement<T>(Operation.DELETE, text1));
-        diffs.add(new RowChangement<T>(Operation.INSERT, text2));
+        ChangeList<cell_t> diffs = new ChangeList<cell_t>(this);
+        diffs.addConst(new RowChangement<T>(Operation.DELETE, text1));
+        diffs.addConst(new RowChangement<T>(Operation.INSERT, text2));
         return diffs;
     }
 
@@ -394,7 +394,7 @@ public abstract class DMPDiff<cell_t>
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    private <T extends cell_t> ChangeList<T> diff_bisectSplit(IRow<T> text1, IRow<T> text2, int x, int y,
+    private <T extends cell_t> ChangeList<cell_t> diff_bisectSplit(IRow<T> text1, IRow<T> text2, int x, int y,
             long deadline) {
         IRow<T> text1a = text1.slice(0, x);
         IRow<T> text2a = text2.slice(0, y);
@@ -402,8 +402,8 @@ public abstract class DMPDiff<cell_t>
         IRow<T> text2b = text2.slice(y, text2.length());
 
         // Compute both diffs serially.
-        ChangeList<T> diffs = compareImpl(text1a, text2a, false, deadline);
-        ChangeList<T> diffsb = compareImpl(text1b, text2b, false, deadline);
+        ChangeList<cell_t> diffs = compareImpl(text1a, text2a, false, deadline);
+        ChangeList<cell_t> diffsb = compareImpl(text1b, text2b, false, deadline);
 
         diffs.addAll(diffsb);
         return diffs;

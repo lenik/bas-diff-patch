@@ -26,6 +26,21 @@ public class ChangeList<cell_t>
         this.diff = diff;
     }
 
+    @SuppressWarnings("unchecked")
+    public void addConst(RowChangement<? extends cell_t> element) {
+        super.add((RowChangement<cell_t>) element);
+    }
+
+    @SuppressWarnings("unchecked")
+    public void addFirstConst(RowChangement<? extends cell_t> e) {
+        super.addFirst((RowChangement<cell_t>) e);
+    }
+
+    @SuppressWarnings("unchecked")
+    public void addLastConst(RowChangement<? extends cell_t> e) {
+        super.addLast((RowChangement<cell_t>) e);
+    }
+
     /**
      * Reduce the number of edits by eliminating semantically trivial equalities.
      *

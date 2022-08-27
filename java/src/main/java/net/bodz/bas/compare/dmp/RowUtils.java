@@ -58,7 +58,7 @@ public class RowUtils {
      * @return The number of characters common to the end of the first string and the start of the
      *         second string.
      */
-    static <cell_t> int commonOverlap(IRow<? extends cell_t> text1, IRow<? extends cell_t> text2) {
+    static <cell_t> int commonOverlap(IRow<cell_t> text1, IRow<cell_t> text2) {
         // Cache the text lengths to prevent multiple calls.
         int text1_length = text1.length();
         int text2_length = text2.length();
