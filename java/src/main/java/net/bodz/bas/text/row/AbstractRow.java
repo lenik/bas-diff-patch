@@ -1,15 +1,15 @@
-package net.bodz.bas.text.generic;
+package net.bodz.bas.text.row;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public abstract class AbstractText<char_t>
+public abstract class AbstractRow<cell_t>
         implements
-            Text<char_t> {
+            IRow<cell_t> {
 
-//    @Override
-    public Iterator<char_t> iterator2() {
-        return new Iterator<char_t>() {
+    @Override
+    public Iterator<cell_t> iterator() {
+        return new Iterator<cell_t>() {
 
             int n = length();
             int next = 0;
@@ -20,10 +20,10 @@ public abstract class AbstractText<char_t>
             }
 
             @Override
-            public char_t next() {
+            public cell_t next() {
                 if (next >= n)
                     throw new NoSuchElementException();
-                return charAt(next++);
+                return cellAt(next++);
             }
 
             @Override
@@ -39,55 +39,95 @@ public abstract class AbstractText<char_t>
         return length() == 0;
     }
 
+    protected int wrapIndex(int index) {
+        if (index < 0)
+            index += length();
+        if (index < 0 || index >= length())
+            throw new IndexOutOfBoundsException(String.valueOf(index));
+        return index;
+    }
+
+    protected int wrapBegin(int begin) {
+        if (begin < 0)
+            begin += length();
+        if (begin < 0 || begin > length())
+            throw new IndexOutOfBoundsException(String.valueOf(begin));
+        return begin;
+    }
+
+    protected int wrapEnd(int begin, int end) {
+        if (begin < 0)
+            begin += length();
+        if (end < 0)
+            end += length();
+        if (begin < 0)
+            throw new IndexOutOfBoundsException(String.valueOf(begin));
+        if (end < 0 || end - begin > length())
+            throw new IndexOutOfBoundsException(String.valueOf(end));
+        if (end < begin)
+            throw new IllegalArgumentException("end is less than begin");
+        return end;
+    }
+
     @Override
-    public int indexOf(char_t pattern) {
+    public IRow<cell_t> slice(int begin) {
+        begin = wrapBegin(begin);
+        return slice(begin, length());
+    }
+
+    @Override
+    public int indexOf(Object pattern) {
         return indexOf(pattern, 0);
     }
 
     @Override
-    public int indexOf(char_t pattern, int from) {
+    public int indexOf(Object pattern, int from) {
+        from = wrapBegin(from);
         int n = length();
         for (int i = from; i < n; i++)
-            if (pattern.equals(charAt(i)))
+            if (pattern.equals(cellAt(i)))
                 return i;
         return -1;
     }
 
     @Override
-    public int lastIndexOf(char_t pattern) {
+    public int lastIndexOf(Object pattern) {
         return lastIndexOf(pattern, length() - 1);
     }
 
     @Override
-    public int lastIndexOf(char_t pattern, int from) {
+    public int lastIndexOf(Object pattern, int from) {
+        from = wrapBegin(from);
         for (int i = from; i >= 0; i--)
-            if (pattern.equals(charAt(i)))
+            if (pattern.equals(cellAt(i)))
                 return i;
         return -1;
     }
 
     @Override
-    public int indexOf(Text<char_t> pattern) {
+    public int indexOf(IRow<? extends cell_t> pattern) {
         return indexOf(pattern, 0);
     }
 
     @Override
-    public int indexOf(Text<char_t> pattern, int fromIndex) {
-        return indexOf(this, 0, this.length(), pattern, 0, pattern.length(), fromIndex);
+    public int indexOf(IRow<? extends cell_t> pattern, int from) {
+        from = wrapBegin(from);
+        return indexOf(this, 0, this.length(), pattern, 0, pattern.length(), from);
     }
 
     @Override
-    public int lastIndexOf(Text<char_t> pattern) {
+    public int lastIndexOf(IRow<? extends cell_t> pattern) {
         return lastIndexOf(pattern, this.length());
     }
 
     @Override
-    public int lastIndexOf(Text<char_t> pattern, int fromIndex) {
-        return lastIndexOf(this, 0, this.length(), pattern, 0, pattern.length(), fromIndex);
+    public int lastIndexOf(IRow<? extends cell_t> pattern, int from) {
+        from = wrapBegin(from);
+        return lastIndexOf(this, 0, this.length(), pattern, 0, pattern.length(), from);
     }
 
-    private static int indexOf(Text<?> source, int sourceOffset, int sourceCount, //
-            Text<?> target, int targetOffset, int targetCount, int fromIndex) {
+    private static int indexOf(IRow<?> source, int sourceOffset, int sourceCount, //
+            IRow<?> target, int targetOffset, int targetCount, int fromIndex) {
         if (fromIndex >= sourceCount)
             return (targetCount == 0 ? sourceCount : -1);
         if (fromIndex < 0)
@@ -95,13 +135,13 @@ public abstract class AbstractText<char_t>
         if (targetCount == 0)
             return fromIndex;
 
-        Object first = target.charAt(targetOffset);
+        Object first = target.cellAt(targetOffset);
         int max = sourceOffset + (sourceCount - targetCount);
 
         for (int i = sourceOffset + fromIndex; i <= max; i++) {
-            if (Nullables.notEquals(source.charAt(i), first))
+            if (Nullables.notEquals(source.cellAt(i), first))
                 while (++i <= max)
-                    if (Nullables.equals(source.charAt(i), first))
+                    if (Nullables.equals(source.cellAt(i), first))
                         break;
 
             if (i <= max) {
@@ -110,7 +150,7 @@ public abstract class AbstractText<char_t>
 
                 int k = targetOffset + 1;
                 while (j < end) {
-                    if (Nullables.notEquals(source.charAt(j), target.charAt(k)))
+                    if (Nullables.notEquals(source.cellAt(j), target.cellAt(k)))
                         break;
                     j++;
                     k++;
@@ -122,7 +162,7 @@ public abstract class AbstractText<char_t>
         return -1;
     }
 
-    private static int lastIndexOf(Text<?> source, int sourceOffset, int sourceCount, Text<?> target, int targetOffset,
+    private static int lastIndexOf(IRow<?> source, int sourceOffset, int sourceCount, IRow<?> target, int targetOffset,
             int targetCount, int fromIndex) {
         int rightIndex = sourceCount - targetCount;
         if (fromIndex < 0)
@@ -133,13 +173,13 @@ public abstract class AbstractText<char_t>
             return fromIndex;
 
         int strLastIndex = targetOffset + targetCount - 1;
-        Object strLastChar = target.charAt(strLastIndex);
+        Object strLastChar = target.cellAt(strLastIndex);
         int min = sourceOffset + targetCount - 1;
         int i = min + fromIndex;
 
         L: while (true) {
             while (i >= min) {
-                if (Nullables.equals(source.charAt(i), strLastChar))
+                if (Nullables.equals(source.cellAt(i), strLastChar))
                     break;
                 i--;
             }
@@ -151,7 +191,7 @@ public abstract class AbstractText<char_t>
             int k = strLastIndex - 1;
 
             while (j > start)
-                if (Nullables.notEquals(source.charAt(j--), target.charAt(k--))) {
+                if (Nullables.notEquals(source.cellAt(j--), target.cellAt(k--))) {
                     i--;
                     continue L;
                 }
@@ -160,44 +200,39 @@ public abstract class AbstractText<char_t>
     }
 
     @Override
-    public boolean startsWith(Text<char_t> pattern) {
+    public boolean startsWith(IRow<? extends cell_t> pattern) {
         int nl = length();
         int np = pattern.length();
         if (nl < np)
             return false;
         for (int i = 0; i < np; i++)
-            if (Nullables.notEquals(charAt(i), pattern.charAt(i)))
+            if (Nullables.notEquals(cellAt(i), pattern.cellAt(i)))
                 return false;
         return true;
     }
 
     @Override
-    public boolean endsWith(Text<char_t> pattern) {
+    public boolean endsWith(IRow<? extends cell_t> pattern) {
         int nl = length();
         int np = pattern.length();
         if (nl < np)
             return false;
         int tail = nl - np;
         for (int i = 0; i < np; i++)
-            if (Nullables.notEquals(charAt(tail + i), pattern.charAt(i)))
+            if (Nullables.notEquals(cellAt(tail + i), pattern.cellAt(i)))
                 return false;
         return true;
     }
 
     @Override
-    public String asString() {
+    public String toString() {
         int n = length();
         StringBuilder sb = new StringBuilder(n);
         for (int i = 0; i < n; i++) {
-            char_t ch = charAt(i);
+            cell_t ch = cellAt(i);
             sb.append(ch.toString());
         }
         return sb.toString();
-    }
-
-    @Override
-    public String toString() {
-        return asString();
     }
 
     @Override
@@ -206,7 +241,7 @@ public abstract class AbstractText<char_t>
         int result = 1;
         int len = length();
         for (int i = 0; i < len; i++) {
-            char_t c = charAt(i);
+            cell_t c = cellAt(i);
             result = prime * result + c.hashCode();
         }
         return result;
@@ -222,15 +257,15 @@ public abstract class AbstractText<char_t>
             return false;
 
         @SuppressWarnings("unchecked")
-        AbstractText<char_t> other = (AbstractText<char_t>) obj;
+        AbstractRow<cell_t> other = (AbstractRow<cell_t>) obj;
 
         int len = length();
         if (len != other.length())
             return false;
 
         for (int i = 0; i < len; i++) {
-            char_t c1 = charAt(i);
-            char_t c2 = other.charAt(i);
+            cell_t c1 = cellAt(i);
+            cell_t c2 = other.cellAt(i);
             if (!c1.equals(c2))
                 return false;
         }

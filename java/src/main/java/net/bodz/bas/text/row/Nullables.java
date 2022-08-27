@@ -1,4 +1,4 @@
-package net.bodz.bas.text.generic;
+package net.bodz.bas.text.row;
 
 public class Nullables {
 

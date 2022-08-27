@@ -25,10 +25,11 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.bodz.bas.text.generic.IndexList;
-import net.bodz.bas.text.generic.ListText;
-import net.bodz.bas.text.generic.Text;
-import net.bodz.bas.text.generic.Texts;
+import net.bodz.bas.compare.dmp.rowtype.IDmpRowType;
+import net.bodz.bas.text.row.IRow;
+import net.bodz.bas.text.row.IntegerRow;
+import net.bodz.bas.text.row.MutableRow;
+import net.bodz.bas.text.row.Rows;
 
 /*
  * Functions for diff, match and patch.
@@ -41,7 +42,7 @@ import net.bodz.bas.text.generic.Texts;
 /**
  * Class containing the diff, match and patch methods. Also contains the behaviour settings.
  */
-public class DiffMatchPatch<char_t> {
+public class DiffMatchPatch<cell_t> {
 
     // Defaults.
     // Set these on your diff_match_patch instance to override the defaults.
@@ -80,10 +81,10 @@ public class DiffMatchPatch<char_t> {
      */
     private short Match_MaxBits = 32;
 
-    ICharDiffType<char_t> charType;
+    public final IDmpRowType<? extends IRow<cell_t>, IRow<? extends cell_t>, cell_t> rowType;
 
-    public DiffMatchPatch(ICharDiffType<char_t> charType) {
-        this.charType = charType;
+    public DiffMatchPatch(IDmpRowType<? extends IRow<cell_t>, IRow<? extends cell_t>, cell_t> rowType) {
+        this.rowType = rowType;
     }
 
     /**
@@ -91,11 +92,11 @@ public class DiffMatchPatch<char_t> {
      * just use a three-element array.
      */
     public static class LinesToCharsResult<char_t> {
-        protected Text<Integer> chars1;
-        protected Text<Integer> chars2;
-        protected List<Text<char_t>> lineArray;
+        protected IRow<Integer> chars1;
+        protected IRow<Integer> chars2;
+        protected List<IRow<char_t>> lineArray;
 
-        protected LinesToCharsResult(Text<Integer> chars1, Text<Integer> chars2, List<Text<char_t>> lineArray) {
+        protected LinesToCharsResult(IRow<Integer> chars1, IRow<Integer> chars2, List<IRow<char_t>> lineArray) {
             this.chars1 = chars1;
             this.chars2 = chars2;
             this.lineArray = lineArray;
@@ -126,7 +127,7 @@ public class DiffMatchPatch<char_t> {
      *            New string to be diffed.
      * @return Linked List of Diff objects.
      */
-    public LinkedList<Diff<char_t>> diff_main(Text<char_t> text1, Text<char_t> text2) {
+    public LinkedList<Diff<cell_t>> diff_main(IRow<cell_t> text1, IRow<cell_t> text2) {
         return diff_main(text1, text2, true);
     }
 
@@ -142,7 +143,7 @@ public class DiffMatchPatch<char_t> {
      *            changed areas. If true, then run a faster slightly less optimal diff.
      * @return Linked List of Diff objects.
      */
-    public LinkedList<Diff<char_t>> diff_main(Text<char_t> text1, Text<char_t> text2, boolean checklines) {
+    public LinkedList<Diff<cell_t>> diff_main(IRow<cell_t> text1, IRow<cell_t> text2, boolean checklines) {
         // Set a deadline by which time the diff must be complete.
         long deadline;
         if (Diff_Timeout <= 0) {
@@ -169,43 +170,43 @@ public class DiffMatchPatch<char_t> {
      *            Users should set DiffTimeout instead.
      * @return Linked List of Diff objects.
      */
-    LinkedList<Diff<char_t>> diff_main(Text<char_t> text1, Text<char_t> text2, boolean checklines, long deadline) {
+    LinkedList<Diff<cell_t>> diff_main(IRow<cell_t> text1, IRow<cell_t> text2, boolean checklines, long deadline) {
         // Check for null inputs.
         if (text1 == null || text2 == null) {
             throw new IllegalArgumentException("Null inputs. (diff_main)");
         }
 
         // Check for equality (speedup).
-        LinkedList<Diff<char_t>> diffs;
+        LinkedList<Diff<cell_t>> diffs;
         if (text1.equals(text2)) {
-            diffs = new LinkedList<Diff<char_t>>();
+            diffs = new LinkedList<Diff<cell_t>>();
             if (text1.length() != 0) {
-                diffs.add(new Diff<char_t>(Operation.EQUAL, text1));
+                diffs.add(new Diff<cell_t>(Operation.EQUAL, text1));
             }
             return diffs;
         }
 
         // Trim off common prefix (speedup).
         int commonlength = diff_commonPrefix(text1, text2);
-        Text<char_t> commonprefix = text1.substring(0, commonlength);
-        text1 = text1.substring(commonlength, text1.length());
-        text2 = text2.substring(commonlength, text2.length());
+        IRow<cell_t> commonprefix = text1.slice(0, commonlength);
+        text1 = text1.slice(commonlength, text1.length());
+        text2 = text2.slice(commonlength, text2.length());
 
         // Trim off common suffix (speedup).
         commonlength = diff_commonSuffix(text1, text2);
-        Text<char_t> commonsuffix = text1.substring(text1.length() - commonlength, text1.length());
-        text1 = text1.substring(0, text1.length() - commonlength);
-        text2 = text2.substring(0, text2.length() - commonlength);
+        IRow<cell_t> commonsuffix = text1.slice(text1.length() - commonlength, text1.length());
+        text1 = text1.slice(0, text1.length() - commonlength);
+        text2 = text2.slice(0, text2.length() - commonlength);
 
         // Compute the diff on the middle block.
         diffs = diff_compute(text1, text2, checklines, deadline);
 
         // Restore the prefix and suffix.
         if (commonprefix.length() != 0) {
-            diffs.addFirst(new Diff<char_t>(Operation.EQUAL, commonprefix));
+            diffs.addFirst(new Diff<cell_t>(Operation.EQUAL, commonprefix));
         }
         if (commonsuffix.length() != 0) {
-            diffs.addLast(new Diff<char_t>(Operation.EQUAL, commonsuffix));
+            diffs.addLast(new Diff<cell_t>(Operation.EQUAL, commonsuffix));
         }
 
         diff_cleanupMerge(diffs);
@@ -227,57 +228,57 @@ public class DiffMatchPatch<char_t> {
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private LinkedList<Diff<char_t>> diff_compute(Text<char_t> text1, Text<char_t> text2, boolean checklines,
+    private LinkedList<Diff<cell_t>> diff_compute(IRow<cell_t> text1, IRow<cell_t> text2, boolean checklines,
             long deadline) {
-        LinkedList<Diff<char_t>> diffs = new LinkedList<Diff<char_t>>();
+        LinkedList<Diff<cell_t>> diffs = new LinkedList<Diff<cell_t>>();
 
         if (text1.length() == 0) {
             // Just add some text (speedup).
-            diffs.add(new Diff<char_t>(Operation.INSERT, text2));
+            diffs.add(new Diff<cell_t>(Operation.INSERT, text2));
             return diffs;
         }
 
         if (text2.length() == 0) {
             // Just delete some text (speedup).
-            diffs.add(new Diff<char_t>(Operation.DELETE, text1));
+            diffs.add(new Diff<cell_t>(Operation.DELETE, text1));
             return diffs;
         }
 
-        Text<char_t> longtext = text1.length() > text2.length() ? text1 : text2;
-        Text<char_t> shorttext = text1.length() > text2.length() ? text2 : text1;
+        IRow<cell_t> longtext = text1.length() > text2.length() ? text1 : text2;
+        IRow<cell_t> shorttext = text1.length() > text2.length() ? text2 : text1;
         int i = longtext.indexOf(shorttext);
         if (i != -1) {
             // Shorter text is inside the longer text (speedup).
             Operation op = (text1.length() > text2.length()) ? Operation.DELETE : Operation.INSERT;
-            diffs.add(new Diff<char_t>(op, longtext.substring(0, i)));
-            diffs.add(new Diff<char_t>(Operation.EQUAL, shorttext));
-            diffs.add(new Diff<char_t>(op, longtext.substring(i + shorttext.length(), longtext.length())));
+            diffs.add(new Diff<cell_t>(op, longtext.slice(0, i)));
+            diffs.add(new Diff<cell_t>(Operation.EQUAL, shorttext));
+            diffs.add(new Diff<cell_t>(op, longtext.slice(i + shorttext.length(), longtext.length())));
             return diffs;
         }
 
         if (shorttext.length() == 1) {
             // Single character string.
             // After the previous speedup, the character can't be an equality.
-            diffs.add(new Diff<char_t>(Operation.DELETE, text1));
-            diffs.add(new Diff<char_t>(Operation.INSERT, text2));
+            diffs.add(new Diff<cell_t>(Operation.DELETE, text1));
+            diffs.add(new Diff<cell_t>(Operation.INSERT, text2));
             return diffs;
         }
 
         // Check to see if the problem can be split in two.
-        HalfMatch<char_t> hm = diff_halfMatch(text1, text2);
+        HalfMatch<cell_t> hm = diff_halfMatch(text1, text2);
         if (hm != null) {
             // A half-match was found, sort out the return data.
-            Text<char_t> text1_a = hm.prefix1;
-            Text<char_t> text1_b = hm.suffix1;
-            Text<char_t> text2_a = hm.prefix2;
-            Text<char_t> text2_b = hm.suffix2;
-            Text<char_t> mid_common = hm.common;
+            IRow<cell_t> text1_a = hm.prefix1;
+            IRow<cell_t> text1_b = hm.suffix1;
+            IRow<cell_t> text2_a = hm.prefix2;
+            IRow<cell_t> text2_b = hm.suffix2;
+            IRow<cell_t> mid_common = hm.common;
             // Send both pairs off for separate processing.
-            LinkedList<Diff<char_t>> diffs_a = diff_main(text1_a, text2_a, checklines, deadline);
-            LinkedList<Diff<char_t>> diffs_b = diff_main(text1_b, text2_b, checklines, deadline);
+            LinkedList<Diff<cell_t>> diffs_a = diff_main(text1_a, text2_a, checklines, deadline);
+            LinkedList<Diff<cell_t>> diffs_b = diff_main(text1_b, text2_b, checklines, deadline);
             // Merge the results.
             diffs = diffs_a;
-            diffs.add(new Diff<char_t>(Operation.EQUAL, mid_common));
+            diffs.add(new Diff<cell_t>(Operation.EQUAL, mid_common));
             diffs.addAll(diffs_b);
             return diffs;
         }
@@ -301,27 +302,27 @@ public class DiffMatchPatch<char_t> {
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private LinkedList<Diff<char_t>> diff_lineMode(Text<char_t> text1, Text<char_t> text2, long deadline) {
+    private LinkedList<Diff<cell_t>> diff_lineMode(IRow<cell_t> text1, IRow<cell_t> text2, long deadline) {
         // Scan the text on a line-by-line basis first.
-        LinesToCharsResult<char_t> a = diff_linesToChars(text1, text2);
-        List<Text<char_t>> linearray = a.lineArray;
+        LinesToCharsResult<cell_t> a = diff_linesToChars(text1, text2);
+        List<IRow<cell_t>> linearray = a.lineArray;
 
         LinkedList<Diff<Integer>> atom_diffs = IntDiffPatch.INSTANCE.diff_main(a.chars1, a.chars2, false, deadline);
 
         // Convert the diff back to original text.
-        LinkedList<Diff<char_t>> diffs = diff_charsToLines(atom_diffs, linearray);
+        LinkedList<Diff<cell_t>> diffs = diff_charsToLines(atom_diffs, linearray);
         // Eliminate freak matches (e.g. blank lines)
         diff_cleanupSemantic(diffs);
 
         // Rediff any replacement blocks, this time character-by-character.
         // Add a dummy entry at the end.
-        diffs.add(new Diff<char_t>(Operation.EQUAL, Texts.<char_t> empty()));
+        diffs.add(new Diff<cell_t>(Operation.EQUAL, Rows.<cell_t> empty()));
         int count_delete = 0;
         int count_insert = 0;
-        ListText<char_t> text_delete = new ListText<char_t>();
-        ListText<char_t> text_insert = new ListText<char_t>();
-        ListIterator<Diff<char_t>> pointer = diffs.listIterator();
-        Diff<char_t> thisDiff = pointer.next();
+        MutableRow<cell_t> text_delete = new MutableRow<cell_t>();
+        MutableRow<cell_t> text_insert = new MutableRow<cell_t>();
+        ListIterator<Diff<cell_t>> pointer = diffs.listIterator();
+        Diff<cell_t> thisDiff = pointer.next();
         while (thisDiff != null) {
             switch (thisDiff.operation) {
             case INSERT:
@@ -341,7 +342,7 @@ public class DiffMatchPatch<char_t> {
                         pointer.previous();
                         pointer.remove();
                     }
-                    for (Diff<char_t> subDiff : diff_main(text_delete, text_insert, false, deadline)) {
+                    for (Diff<cell_t> subDiff : diff_main(text_delete, text_insert, false, deadline)) {
                         pointer.add(subDiff);
                     }
                 }
@@ -370,7 +371,7 @@ public class DiffMatchPatch<char_t> {
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    LinkedList<Diff<char_t>> diff_bisect(Text<char_t> text1, Text<char_t> text2, long deadline) {
+    LinkedList<Diff<cell_t>> diff_bisect(IRow<cell_t> text1, IRow<cell_t> text2, long deadline) {
         // Cache the text lengths to prevent multiple calls.
         int text1_length = text1.length();
         int text2_length = text2.length();
@@ -411,7 +412,7 @@ public class DiffMatchPatch<char_t> {
                     x1 = v1[k1_offset - 1] + 1;
                 }
                 int y1 = x1 - k1;
-                while (x1 < text1_length && y1 < text2_length && equals(text1.charAt(x1), text2.charAt(y1))) {
+                while (x1 < text1_length && y1 < text2_length && equals(text1.cellAt(x1), text2.cellAt(y1))) {
                     x1++;
                     y1++;
                 }
@@ -446,7 +447,7 @@ public class DiffMatchPatch<char_t> {
                 }
                 int y2 = x2 - k2;
                 while (x2 < text1_length && y2 < text2_length
-                        && equals(text1.charAt(text1_length - x2 - 1), text2.charAt(text2_length - y2 - 1))) {
+                        && equals(text1.cellAt(text1_length - x2 - 1), text2.cellAt(text2_length - y2 - 1))) {
                     x2++;
                     y2++;
                 }
@@ -474,9 +475,9 @@ public class DiffMatchPatch<char_t> {
         }
         // Diff took too long and hit the deadline or
         // number of diffs equals number of characters, no commonality at all.
-        LinkedList<Diff<char_t>> diffs = new LinkedList<Diff<char_t>>();
-        diffs.add(new Diff<char_t>(Operation.DELETE, text1));
-        diffs.add(new Diff<char_t>(Operation.INSERT, text2));
+        LinkedList<Diff<cell_t>> diffs = new LinkedList<Diff<cell_t>>();
+        diffs.add(new Diff<cell_t>(Operation.DELETE, text1));
+        diffs.add(new Diff<cell_t>(Operation.INSERT, text2));
         return diffs;
     }
 
@@ -495,16 +496,16 @@ public class DiffMatchPatch<char_t> {
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    private LinkedList<Diff<char_t>> diff_bisectSplit(Text<char_t> text1, Text<char_t> text2, int x, int y,
+    private LinkedList<Diff<cell_t>> diff_bisectSplit(IRow<cell_t> text1, IRow<cell_t> text2, int x, int y,
             long deadline) {
-        Text<char_t> text1a = text1.substring(0, x);
-        Text<char_t> text2a = text2.substring(0, y);
-        Text<char_t> text1b = text1.substring(x, text1.length());
-        Text<char_t> text2b = text2.substring(y, text2.length());
+        IRow<cell_t> text1a = text1.slice(0, x);
+        IRow<cell_t> text2a = text2.slice(0, y);
+        IRow<cell_t> text1b = text1.slice(x, text1.length());
+        IRow<cell_t> text2b = text2.slice(y, text2.length());
 
         // Compute both diffs serially.
-        LinkedList<Diff<char_t>> diffs = diff_main(text1a, text2a, false, deadline);
-        LinkedList<Diff<char_t>> diffsb = diff_main(text1b, text2b, false, deadline);
+        LinkedList<Diff<cell_t>> diffs = diff_main(text1a, text2a, false, deadline);
+        LinkedList<Diff<cell_t>> diffsb = diff_main(text1b, text2b, false, deadline);
 
         diffs.addAll(diffsb);
         return diffs;
@@ -521,20 +522,20 @@ public class DiffMatchPatch<char_t> {
      * @return An object containing the encoded text1, the encoded text2 and the List of unique
      *         strings. The zeroth element of the List of unique strings is intentionally blank.
      */
-    LinesToCharsResult<char_t> diff_linesToChars(Text<char_t> text1, Text<char_t> text2) {
-        List<Text<char_t>> lineArray = new ArrayList<Text<char_t>>();
-        Map<Text<char_t>, Integer> lineHash = new HashMap<Text<char_t>, Integer>();
+    LinesToCharsResult<cell_t> diff_linesToChars(IRow<cell_t> text1, IRow<cell_t> text2) {
+        List<IRow<cell_t>> lineArray = new ArrayList<IRow<cell_t>>();
+        Map<IRow<cell_t>, Integer> lineHash = new HashMap<IRow<cell_t>, Integer>();
         // e.g. linearray[4] == "Hello\n"
         // e.g. linehash.get("Hello\n") == 4
 
         // "\x00" is a valid character, but various debuggers don't like it.
         // So we'll insert a junk entry to avoid generating a null character.
-        lineArray.add(new ListText<char_t>());
+        lineArray.add(new MutableRow<cell_t>());
 
         // Allocate 2/3rds of the space for text1, the rest for text2.
-        Text<Integer> chars1 = diff_linesToCharsMunge(text1, lineArray, lineHash, 40000);
-        Text<Integer> chars2 = diff_linesToCharsMunge(text2, lineArray, lineHash, 65535);
-        return new LinesToCharsResult<char_t>(chars1, chars2, lineArray);
+        IRow<Integer> chars1 = diff_linesToCharsMunge(text1, lineArray, lineHash, 40000);
+        IRow<Integer> chars2 = diff_linesToCharsMunge(text2, lineArray, lineHash, 65535);
+        return new LinesToCharsResult<cell_t>(chars1, chars2, lineArray);
     }
 
     /**
@@ -551,21 +552,21 @@ public class DiffMatchPatch<char_t> {
      *            Maximum length of lineArray.
      * @return Encoded string.
      */
-    private Text<Integer> diff_linesToCharsMunge(Text<char_t> text, List<Text<char_t>> lineArray,
-            Map<Text<char_t>, Integer> lineHash, int maxLines) {
+    private IRow<Integer> diff_linesToCharsMunge(IRow<cell_t> text, List<IRow<cell_t>> lineArray,
+            Map<IRow<cell_t>, Integer> lineHash, int maxLines) {
         int lineStart = 0;
         int lineEnd = -1;
-        Text<char_t> line;
-        IndexList ints = new IndexList();
+        IRow<cell_t> line;
+        IntegerRow ints = new IntegerRow();
         // Walk the text, pulling out a substring for each line.
         // text.split('\n') would would temporarily double our memory footprint.
         // Modifying text would create many large strings to garbage collect.
         while (lineEnd < text.length() - 1) {
-            lineEnd = text.indexOf(charType.separator(), lineStart);
+            lineEnd = text.indexOf(rowType.separator(), lineStart);
             if (lineEnd == -1) {
                 lineEnd = text.length() - 1;
             }
-            line = text.substring(lineStart, lineEnd + 1);
+            line = text.slice(lineStart, lineEnd + 1);
 
             if (lineHash.containsKey(line)) {
                 ints.append(lineHash.get(line));
@@ -573,7 +574,7 @@ public class DiffMatchPatch<char_t> {
                 if (lineArray.size() == maxLines) {
                     // Bail out at 65535 because
                     // String.valueOf((char) 65536).equals(String.valueOf(((char) 0)))
-                    line = text.substring(lineStart);
+                    line = text.slice(lineStart);
                     lineEnd = text.length();
                 }
                 lineArray.add(line);
@@ -593,15 +594,15 @@ public class DiffMatchPatch<char_t> {
      * @param lineArray
      *            List of unique strings.
      */
-    LinkedList<Diff<char_t>> diff_charsToLines(List<Diff<Integer>> diffs, List<? extends Text<char_t>> lineArray) {
-        LinkedList<Diff<char_t>> result = new LinkedList<Diff<char_t>>();
+    LinkedList<Diff<cell_t>> diff_charsToLines(List<Diff<Integer>> diffs, List<? extends IRow<cell_t>> lineArray) {
+        LinkedList<Diff<cell_t>> result = new LinkedList<Diff<cell_t>>();
         for (Diff<Integer> diff : diffs) {
-            ListText<char_t> text = new ListText<char_t>();
+            MutableRow<cell_t> text = new MutableRow<cell_t>();
             for (int j = 0; j < diff.text.length(); j++) {
-                Integer index = diff.text.charAt(j);
+                Integer index = diff.text.cellAt(j);
                 text.append(lineArray.get(index));
             }
-            result.add(new Diff<char_t>(diff.operation, text));
+            result.add(new Diff<cell_t>(diff.operation, text));
         }
         return result;
     }
@@ -615,11 +616,11 @@ public class DiffMatchPatch<char_t> {
      *            Second string.
      * @return The number of characters common to the start of each string.
      */
-    public int diff_commonPrefix(Text<char_t> text1, Text<char_t> text2) {
+    public int diff_commonPrefix(IRow<cell_t> text1, IRow<cell_t> text2) {
         // Performance analysis: https://neil.fraser.name/news/2007/10/09/
         int n = Math.min(text1.length(), text2.length());
         for (int i = 0; i < n; i++) {
-            if (notEquals(text1.charAt(i), text2.charAt(i))) {
+            if (notEquals(text1.cellAt(i), text2.cellAt(i))) {
                 return i;
             }
         }
@@ -635,13 +636,13 @@ public class DiffMatchPatch<char_t> {
      *            Second string.
      * @return The number of characters common to the end of each string.
      */
-    public int diff_commonSuffix(Text<char_t> text1, Text<char_t> text2) {
+    public int diff_commonSuffix(IRow<cell_t> text1, IRow<cell_t> text2) {
         // Performance analysis: https://neil.fraser.name/news/2007/10/09/
         int text1_length = text1.length();
         int text2_length = text2.length();
         int n = Math.min(text1_length, text2_length);
         for (int i = 1; i <= n; i++) {
-            if (notEquals(text1.charAt(text1_length - i), text2.charAt(text2_length - i))) {
+            if (notEquals(text1.cellAt(text1_length - i), text2.cellAt(text2_length - i))) {
                 return i - 1;
             }
         }
@@ -658,7 +659,7 @@ public class DiffMatchPatch<char_t> {
      * @return The number of characters common to the end of the first string and the start of the
      *         second string.
      */
-    int diff_commonOverlap(Text<char_t> text1, Text<char_t> text2) {
+    int diff_commonOverlap(IRow<cell_t> text1, IRow<cell_t> text2) {
         // Cache the text lengths to prevent multiple calls.
         int text1_length = text1.length();
         int text2_length = text2.length();
@@ -668,9 +669,9 @@ public class DiffMatchPatch<char_t> {
         }
         // Truncate the longer string.
         if (text1_length > text2_length) {
-            text1 = text1.substring(text1_length - text2_length);
+            text1 = text1.slice(text1_length - text2_length);
         } else if (text1_length < text2_length) {
-            text2 = text2.substring(0, text1_length);
+            text2 = text2.slice(0, text1_length);
         }
         int text_length = Math.min(text1_length, text2_length);
         // Quick check for the worst case.
@@ -684,13 +685,13 @@ public class DiffMatchPatch<char_t> {
         int best = 0;
         int length = 1;
         while (true) {
-            Text<char_t> pattern = text1.substring(text_length - length);
+            IRow<cell_t> pattern = text1.slice(text_length - length);
             int found = text2.indexOf(pattern);
             if (found == -1) {
                 return best;
             }
             length += found;
-            if (found == 0 || text1.substring(text_length - length).equals(text2.substring(0, length))) {
+            if (found == 0 || text1.slice(text_length - length).equals(text2.slice(0, length))) {
                 best = length;
                 length++;
             }
@@ -709,22 +710,22 @@ public class DiffMatchPatch<char_t> {
      *         prefix of text2, the suffix of text2 and the common middle. Or null if there was no
      *         match.
      */
-    HalfMatch<char_t> diff_halfMatch(Text<char_t> text1, Text<char_t> text2) {
+    HalfMatch<cell_t> diff_halfMatch(IRow<cell_t> text1, IRow<cell_t> text2) {
         if (Diff_Timeout <= 0) {
             // Don't risk returning a non-optimal diff if we have unlimited time.
             return null;
         }
-        Text<char_t> longtext = text1.length() > text2.length() ? text1 : text2;
-        Text<char_t> shorttext = text1.length() > text2.length() ? text2 : text1;
+        IRow<cell_t> longtext = text1.length() > text2.length() ? text1 : text2;
+        IRow<cell_t> shorttext = text1.length() > text2.length() ? text2 : text1;
         if (longtext.length() < 4 || shorttext.length() * 2 < longtext.length()) {
             return null; // Pointless.
         }
 
         // First check if the second quarter is the seed for a half-match.
-        HalfMatch<char_t> hm1 = diff_halfMatchI(longtext, shorttext, (longtext.length() + 3) / 4);
+        HalfMatch<cell_t> hm1 = diff_halfMatchI(longtext, shorttext, (longtext.length() + 3) / 4);
         // Check again based on the third quarter.
-        HalfMatch<char_t> hm2 = diff_halfMatchI(longtext, shorttext, (longtext.length() + 1) / 2);
-        HalfMatch<char_t> hm;
+        HalfMatch<cell_t> hm2 = diff_halfMatchI(longtext, shorttext, (longtext.length() + 1) / 2);
+        HalfMatch<cell_t> hm;
         if (hm1 == null && hm2 == null) {
             return null;
         } else if (hm2 == null) {
@@ -741,7 +742,7 @@ public class DiffMatchPatch<char_t> {
             return hm;
             // return new String[]{hm[0], hm[1], hm[2], hm[3], hm[4]};
         } else {
-            return new HalfMatch<char_t>(hm.prefix2, hm.suffix2, hm.prefix1, hm.suffix1, hm.common);
+            return new HalfMatch<cell_t>(hm.prefix2, hm.suffix2, hm.prefix1, hm.suffix1, hm.common);
         }
     }
 
@@ -759,27 +760,27 @@ public class DiffMatchPatch<char_t> {
      *         the prefix of shorttext, the suffix of shorttext and the common middle. Or null if
      *         there was no match.
      */
-    private HalfMatch<char_t> diff_halfMatchI(Text<char_t> longtext, Text<char_t> shorttext, int i) {
+    private HalfMatch<cell_t> diff_halfMatchI(IRow<cell_t> longtext, IRow<cell_t> shorttext, int i) {
         // Start with a 1/4 length substring at position i as a seed.
-        Text<char_t> seed = longtext.substring(i, i + longtext.length() / 4);
+        IRow<cell_t> seed = longtext.slice(i, i + longtext.length() / 4);
         int j = -1;
-        Text<char_t> best_common = Texts.empty();
-        Text<char_t> best_longtext_a = Texts.empty(), best_longtext_b = Texts.empty();
-        Text<char_t> best_shorttext_a = Texts.empty(), best_shorttext_b = Texts.empty();
+        IRow<cell_t> best_common = Rows.empty();
+        IRow<cell_t> best_longtext_a = Rows.empty(), best_longtext_b = Rows.empty();
+        IRow<cell_t> best_shorttext_a = Rows.empty(), best_shorttext_b = Rows.empty();
         while ((j = shorttext.indexOf(seed, j + 1)) != -1) {
-            int prefixLength = diff_commonPrefix(longtext.substring(i, longtext.length()),
-                    shorttext.substring(j, shorttext.length()));
-            int suffixLength = diff_commonSuffix(longtext.substring(0, i), shorttext.substring(0, j));
+            int prefixLength = diff_commonPrefix(longtext.slice(i, longtext.length()),
+                    shorttext.slice(j, shorttext.length()));
+            int suffixLength = diff_commonSuffix(longtext.slice(0, i), shorttext.slice(0, j));
             if (best_common.length() < suffixLength + prefixLength) {
-                best_common = shorttext.substring(j - suffixLength, j).concat(shorttext.substring(j, j + prefixLength));
-                best_longtext_a = longtext.substring(0, i - suffixLength);
-                best_longtext_b = longtext.substring(i + prefixLength, longtext.length());
-                best_shorttext_a = shorttext.substring(0, j - suffixLength);
-                best_shorttext_b = shorttext.substring(j + prefixLength, shorttext.length());
+                best_common = shorttext.slice(j - suffixLength, j).concat(shorttext.slice(j, j + prefixLength));
+                best_longtext_a = longtext.slice(0, i - suffixLength);
+                best_longtext_b = longtext.slice(i + prefixLength, longtext.length());
+                best_shorttext_a = shorttext.slice(0, j - suffixLength);
+                best_shorttext_b = shorttext.slice(j + prefixLength, shorttext.length());
             }
         }
         if (best_common.length() * 2 >= longtext.length()) {
-            return new HalfMatch<char_t>(best_longtext_a, best_longtext_b, best_shorttext_a, best_shorttext_b,
+            return new HalfMatch<cell_t>(best_longtext_a, best_longtext_b, best_shorttext_a, best_shorttext_b,
                     best_common);
         } else {
             return null;
@@ -792,22 +793,22 @@ public class DiffMatchPatch<char_t> {
      * @param diffs
      *            LinkedList of Diff objects.
      */
-    public void diff_cleanupSemantic(LinkedList<Diff<char_t>> diffs) {
+    public void diff_cleanupSemantic(LinkedList<Diff<cell_t>> diffs) {
         if (diffs.isEmpty()) {
             return;
         }
         boolean changes = false;
-        Deque<Diff<char_t>> equalities = new ArrayDeque<Diff<char_t>>(); // Double-ended queue of
+        Deque<Diff<cell_t>> equalities = new ArrayDeque<Diff<cell_t>>(); // Double-ended queue of
                                                                          // qualities.
-        Text<char_t> lastEquality = null; // Always equal to equalities.peek().text
-        ListIterator<Diff<char_t>> pointer = diffs.listIterator();
+        IRow<cell_t> lastEquality = null; // Always equal to equalities.peek().text
+        ListIterator<Diff<cell_t>> pointer = diffs.listIterator();
         // Number of characters that changed prior to the equality.
         int length_insertions1 = 0;
         int length_deletions1 = 0;
         // Number of characters that changed after the equality.
         int length_insertions2 = 0;
         int length_deletions2 = 0;
-        Diff<char_t> thisDiff = pointer.next();
+        Diff<cell_t> thisDiff = pointer.next();
         while (thisDiff != null) {
             if (thisDiff.operation == Operation.EQUAL) {
                 // Equality found.
@@ -836,9 +837,9 @@ public class DiffMatchPatch<char_t> {
                     pointer.next();
 
                     // Replace equality with a delete.
-                    pointer.set(new Diff<char_t>(Operation.DELETE, lastEquality));
+                    pointer.set(new Diff<cell_t>(Operation.DELETE, lastEquality));
                     // Insert a corresponding an insert.
-                    pointer.add(new Diff<char_t>(Operation.INSERT, lastEquality));
+                    pointer.add(new Diff<cell_t>(Operation.INSERT, lastEquality));
 
                     equalities.pop(); // Throw away the equality we just deleted.
                     if (!equalities.isEmpty()) {
@@ -882,7 +883,7 @@ public class DiffMatchPatch<char_t> {
         // -> <ins>def</ins>xxx<del>abc</del>
         // Only extract an overlap if it is as big as the edit ahead or behind it.
         pointer = diffs.listIterator();
-        Diff<char_t> prevDiff = null;
+        Diff<cell_t> prevDiff = null;
         thisDiff = null;
         if (pointer.hasNext()) {
             prevDiff = pointer.next();
@@ -892,17 +893,17 @@ public class DiffMatchPatch<char_t> {
         }
         while (thisDiff != null) {
             if (prevDiff.operation == Operation.DELETE && thisDiff.operation == Operation.INSERT) {
-                Text<char_t> deletion = prevDiff.text;
-                Text<char_t> insertion = thisDiff.text;
+                IRow<cell_t> deletion = prevDiff.text;
+                IRow<cell_t> insertion = thisDiff.text;
                 int overlap_length1 = this.diff_commonOverlap(deletion, insertion);
                 int overlap_length2 = this.diff_commonOverlap(insertion, deletion);
                 if (overlap_length1 >= overlap_length2) {
                     if (overlap_length1 >= deletion.length() / 2.0 || overlap_length1 >= insertion.length() / 2.0) {
                         // Overlap found. Insert an equality and trim the surrounding edits.
                         pointer.previous();
-                        pointer.add(new Diff<char_t>(Operation.EQUAL, insertion.substring(0, overlap_length1)));
-                        prevDiff.text = deletion.substring(0, deletion.length() - overlap_length1);
-                        thisDiff.text = insertion.substring(overlap_length1, insertion.length());
+                        pointer.add(new Diff<cell_t>(Operation.EQUAL, insertion.slice(0, overlap_length1)));
+                        prevDiff.text = deletion.slice(0, deletion.length() - overlap_length1);
+                        thisDiff.text = insertion.slice(overlap_length1, insertion.length());
                         // pointer.add inserts the element before the cursor, so there is
                         // no need to step past the new element.
                     }
@@ -911,11 +912,11 @@ public class DiffMatchPatch<char_t> {
                         // Reverse overlap found.
                         // Insert an equality and swap and trim the surrounding edits.
                         pointer.previous();
-                        pointer.add(new Diff<char_t>(Operation.EQUAL, deletion.substring(0, overlap_length2)));
+                        pointer.add(new Diff<cell_t>(Operation.EQUAL, deletion.slice(0, overlap_length2)));
                         prevDiff.operation = Operation.INSERT;
-                        prevDiff.text = insertion.substring(0, insertion.length() - overlap_length2);
+                        prevDiff.text = insertion.slice(0, insertion.length() - overlap_length2);
                         thisDiff.operation = Operation.DELETE;
-                        thisDiff.text = deletion.substring(overlap_length2, deletion.length());
+                        thisDiff.text = deletion.slice(overlap_length2, deletion.length());
                         // pointer.add inserts the element before the cursor, so there is
                         // no need to step past the new element.
                     }
@@ -934,17 +935,17 @@ public class DiffMatchPatch<char_t> {
      * @param diffs
      *            LinkedList of Diff objects.
      */
-    public void diff_cleanupSemanticLossless(LinkedList<Diff<char_t>> diffs) {
-        Text<char_t> equality1, edit, equality2;
-        Text<char_t> commonString;
+    public void diff_cleanupSemanticLossless(LinkedList<Diff<cell_t>> diffs) {
+        IRow<cell_t> equality1, edit, equality2;
+        IRow<cell_t> commonString;
         int commonOffset;
         int score, bestScore;
-        Text<char_t> bestEquality1, bestEdit, bestEquality2;
+        IRow<cell_t> bestEquality1, bestEdit, bestEquality2;
         // Create a new iterator at the start.
-        ListIterator<Diff<char_t>> pointer = diffs.listIterator();
-        Diff<char_t> prevDiff = pointer.hasNext() ? pointer.next() : null;
-        Diff<char_t> thisDiff = pointer.hasNext() ? pointer.next() : null;
-        Diff<char_t> nextDiff = pointer.hasNext() ? pointer.next() : null;
+        ListIterator<Diff<cell_t>> pointer = diffs.listIterator();
+        Diff<cell_t> prevDiff = pointer.hasNext() ? pointer.next() : null;
+        Diff<cell_t> thisDiff = pointer.hasNext() ? pointer.next() : null;
+        Diff<cell_t> nextDiff = pointer.hasNext() ? pointer.next() : null;
         // Intentionally ignore the first and last element (don't need checking).
         while (nextDiff != null) {
             if (prevDiff.operation == Operation.EQUAL && nextDiff.operation == Operation.EQUAL) {
@@ -956,9 +957,9 @@ public class DiffMatchPatch<char_t> {
                 // First, shift the edit as far left as possible.
                 commonOffset = diff_commonSuffix(equality1, edit);
                 if (commonOffset != 0) {
-                    commonString = edit.substring(edit.length() - commonOffset, edit.length());
-                    equality1 = equality1.substring(0, equality1.length() - commonOffset);
-                    edit = commonString.concat(edit.substring(0, edit.length() - commonOffset));
+                    commonString = edit.slice(edit.length() - commonOffset, edit.length());
+                    equality1 = equality1.slice(0, equality1.length() - commonOffset);
+                    edit = commonString.concat(edit.slice(0, edit.length() - commonOffset));
                     equality2 = commonString.concat(equality2);
                 }
 
@@ -966,14 +967,14 @@ public class DiffMatchPatch<char_t> {
                 bestEquality1 = equality1;
                 bestEdit = edit;
                 bestEquality2 = equality2;
-                bestScore = charType.cleanupSemanticScore(equality1, edit)
-                        + charType.cleanupSemanticScore(edit, equality2);
-                while (edit.length() != 0 && equality2.length() != 0 && equals(edit.charAt(0), equality2.charAt(0))) {
-                    equality1 = equality1.concat(edit.charAt(0));
-                    edit = edit.substring(1).concat(equality2.charAt(0));
-                    equality2 = equality2.substring(1);
-                    score = charType.cleanupSemanticScore(equality1, edit)
-                            + charType.cleanupSemanticScore(edit, equality2);
+                bestScore = rowType.cleanupSemanticScore(equality1, edit)
+                        + rowType.cleanupSemanticScore(edit, equality2);
+                while (edit.length() != 0 && equality2.length() != 0 && equals(edit.cellAt(0), equality2.cellAt(0))) {
+                    equality1 = equality1.concat(edit.cellAt(0));
+                    edit = edit.slice(1).concat(equality2.cellAt(0));
+                    equality2 = equality2.slice(1);
+                    score = rowType.cleanupSemanticScore(equality1, edit)
+                            + rowType.cleanupSemanticScore(edit, equality2);
                     // The >= encourages trailing rather than leading whitespace on edits.
                     if (score >= bestScore) {
                         bestScore = score;
@@ -1072,15 +1073,15 @@ public class DiffMatchPatch<char_t> {
      * @param diffs
      *            LinkedList of Diff objects.
      */
-    public void diff_cleanupEfficiency(LinkedList<Diff<char_t>> diffs) {
+    public void diff_cleanupEfficiency(LinkedList<Diff<cell_t>> diffs) {
         if (diffs.isEmpty()) {
             return;
         }
         boolean changes = false;
-        Deque<Diff<char_t>> equalities = new ArrayDeque<Diff<char_t>>(); // Double-ended queue of
+        Deque<Diff<cell_t>> equalities = new ArrayDeque<Diff<cell_t>>(); // Double-ended queue of
                                                                          // equalities.
-        Text<char_t> lastEquality = null; // Always equal to equalities.peek().text
-        ListIterator<Diff<char_t>> pointer = diffs.listIterator();
+        IRow<cell_t> lastEquality = null; // Always equal to equalities.peek().text
+        ListIterator<Diff<cell_t>> pointer = diffs.listIterator();
         // Is there an insertion operation before the last equality.
         boolean pre_ins = false;
         // Is there a deletion operation before the last equality.
@@ -1089,8 +1090,8 @@ public class DiffMatchPatch<char_t> {
         boolean post_ins = false;
         // Is there a deletion operation after the last equality.
         boolean post_del = false;
-        Diff<char_t> thisDiff = pointer.next();
-        Diff<char_t> safeDiff = thisDiff; // The last Diff that is known to be unsplittable.
+        Diff<cell_t> thisDiff = pointer.next();
+        Diff<cell_t> safeDiff = thisDiff; // The last Diff that is known to be unsplittable.
         while (thisDiff != null) {
             if (thisDiff.operation == Operation.EQUAL) {
                 // Equality found.
@@ -1130,9 +1131,9 @@ public class DiffMatchPatch<char_t> {
                     pointer.next();
 
                     // Replace equality with a delete.
-                    pointer.set(new Diff<char_t>(Operation.DELETE, lastEquality));
+                    pointer.set(new Diff<cell_t>(Operation.DELETE, lastEquality));
                     // Insert a corresponding an insert.
-                    pointer.add(thisDiff = new Diff<char_t>(Operation.INSERT, lastEquality));
+                    pointer.add(thisDiff = new Diff<cell_t>(Operation.INSERT, lastEquality));
 
                     equalities.pop(); // Throw away the equality we just deleted.
                     lastEquality = null;
@@ -1178,16 +1179,16 @@ public class DiffMatchPatch<char_t> {
      * @param diffs
      *            LinkedList of Diff objects.
      */
-    public void diff_cleanupMerge(LinkedList<Diff<char_t>> diffs) {
-        diffs.add(new Diff<char_t>(Operation.EQUAL, Texts.<char_t> empty())); // Add a dummy entry
-                                                                              // at the end.
-        ListIterator<Diff<char_t>> pointer = diffs.listIterator();
+    public void diff_cleanupMerge(LinkedList<Diff<cell_t>> diffs) {
+        diffs.add(new Diff<cell_t>(Operation.EQUAL, Rows.<cell_t> empty())); // Add a dummy entry
+                                                                             // at the end.
+        ListIterator<Diff<cell_t>> pointer = diffs.listIterator();
         int count_delete = 0;
         int count_insert = 0;
-        ListText<char_t> text_delete = new ListText<char_t>();
-        ListText<char_t> text_insert = new ListText<char_t>();
-        Diff<char_t> thisDiff = pointer.next();
-        Diff<char_t> prevEqual = null;
+        MutableRow<cell_t> text_delete = new MutableRow<cell_t>();
+        MutableRow<cell_t> text_insert = new MutableRow<cell_t>();
+        Diff<cell_t> thisDiff = pointer.next();
+        Diff<cell_t> prevEqual = null;
         int commonlength;
         while (thisDiff != null) {
             switch (thisDiff.operation) {
@@ -1221,10 +1222,10 @@ public class DiffMatchPatch<char_t> {
                             if (pointer.hasPrevious()) {
                                 thisDiff = pointer.previous();
                                 assert thisDiff.operation == Operation.EQUAL : "Previous diff should have been an equality.";
-                                thisDiff.text = thisDiff.text.concat(text_insert.substring(0, commonlength));
+                                thisDiff.text = thisDiff.text.concat(text_insert.slice(0, commonlength));
                                 pointer.next();
                             } else {
-                                pointer.add(new Diff<char_t>(Operation.EQUAL, text_insert.substring(0, commonlength)));
+                                pointer.add(new Diff<cell_t>(Operation.EQUAL, text_insert.slice(0, commonlength)));
                             }
                             text_insert.preserve(commonlength);
                             text_delete.preserve(commonlength);
@@ -1233,7 +1234,7 @@ public class DiffMatchPatch<char_t> {
                         commonlength = diff_commonSuffix(text_insert, text_delete);
                         if (commonlength != 0) {
                             thisDiff = pointer.next();
-                            thisDiff.text = text_insert.substring(text_insert.length() - commonlength)
+                            thisDiff.text = text_insert.slice(text_insert.length() - commonlength)
                                     .concat(thisDiff.text);
                             text_insert.delete(text_insert.length() - commonlength);
                             text_delete.delete(text_delete.length() - commonlength);
@@ -1242,10 +1243,10 @@ public class DiffMatchPatch<char_t> {
                     }
                     // Insert the merged records.
                     if (text_delete.length() != 0) {
-                        pointer.add(new Diff<char_t>(Operation.DELETE, text_delete.copy()));
+                        pointer.add(new Diff<cell_t>(Operation.DELETE, text_delete.copy()));
                     }
                     if (text_insert.length() != 0) {
-                        pointer.add(new Diff<char_t>(Operation.INSERT, text_insert.copy()));
+                        pointer.add(new Diff<cell_t>(Operation.INSERT, text_insert.copy()));
                     }
                     // Step forward to the equality.
                     thisDiff = pointer.hasNext() ? pointer.next() : null;
@@ -1277,9 +1278,9 @@ public class DiffMatchPatch<char_t> {
         // Create a new iterator at the start.
         // (As opposed to walking the current one back.)
         pointer = diffs.listIterator();
-        Diff<char_t> prevDiff = pointer.hasNext() ? pointer.next() : null;
+        Diff<cell_t> prevDiff = pointer.hasNext() ? pointer.next() : null;
         thisDiff = pointer.hasNext() ? pointer.next() : null;
-        Diff<char_t> nextDiff = pointer.hasNext() ? pointer.next() : null;
+        Diff<cell_t> nextDiff = pointer.hasNext() ? pointer.next() : null;
         // Intentionally ignore the first and last element (don't need checking).
         while (nextDiff != null) {
             if (prevDiff.operation == Operation.EQUAL && nextDiff.operation == Operation.EQUAL) {
@@ -1287,7 +1288,7 @@ public class DiffMatchPatch<char_t> {
                 if (thisDiff.text.endsWith(prevDiff.text)) {
                     // Shift the edit over the previous equality.
                     thisDiff.text = prevDiff.text
-                            .concat(thisDiff.text.substring(0, thisDiff.text.length() - prevDiff.text.length()));
+                            .concat(thisDiff.text.slice(0, thisDiff.text.length() - prevDiff.text.length()));
                     nextDiff.text = prevDiff.text.concat(nextDiff.text);
                     pointer.previous(); // Walk past nextDiff.
                     pointer.previous(); // Walk past thisDiff.
@@ -1300,7 +1301,7 @@ public class DiffMatchPatch<char_t> {
                 } else if (thisDiff.text.startsWith(nextDiff.text)) {
                     // Shift the edit over the next equality.
                     prevDiff.text = prevDiff.text.concat(nextDiff.text);
-                    thisDiff.text = thisDiff.text.substring(nextDiff.text.length()).concat(nextDiff.text);
+                    thisDiff.text = thisDiff.text.slice(nextDiff.text.length()).concat(nextDiff.text);
                     pointer.remove(); // Delete nextDiff.
                     nextDiff = pointer.hasNext() ? pointer.next() : null;
                     changes = true;
@@ -1326,13 +1327,13 @@ public class DiffMatchPatch<char_t> {
      *            Location within text1.
      * @return Location within text2.
      */
-    public int diff_xIndex(List<Diff<char_t>> diffs, int loc) {
+    public int diff_xIndex(List<Diff<cell_t>> diffs, int loc) {
         int chars1 = 0;
         int chars2 = 0;
         int last_chars1 = 0;
         int last_chars2 = 0;
-        Diff<char_t> lastDiff = null;
-        for (Diff<char_t> aDiff : diffs) {
+        Diff<cell_t> lastDiff = null;
+        for (Diff<cell_t> aDiff : diffs) {
             if (aDiff.operation != Operation.INSERT) {
                 // Equality or deletion.
                 chars1 += aDiff.text.length();
@@ -1364,9 +1365,9 @@ public class DiffMatchPatch<char_t> {
      *            List of Diff objects.
      * @return HTML representation.
      */
-    public String diff_prettyHtml(List<Diff<char_t>> diffs) {
+    public String diff_prettyHtml(List<Diff<cell_t>> diffs) {
         StringBuilder html = new StringBuilder();
-        for (Diff<char_t> aDiff : diffs) {
+        for (Diff<cell_t> aDiff : diffs) {
             String text = aDiff.getTextAsString().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                     .replace("\n", "&para;<br>");
             switch (aDiff.operation) {
@@ -1391,9 +1392,9 @@ public class DiffMatchPatch<char_t> {
      *            List of Diff objects.
      * @return Source text.
      */
-    public Text<char_t> diff_text1(List<Diff<char_t>> diffs) {
-        ListText<char_t> text = new ListText<char_t>();
-        for (Diff<char_t> aDiff : diffs) {
+    public IRow<cell_t> diff_text1(List<Diff<cell_t>> diffs) {
+        MutableRow<cell_t> text = new MutableRow<cell_t>();
+        for (Diff<cell_t> aDiff : diffs) {
             if (aDiff.operation != Operation.INSERT) {
                 text.append(aDiff.text);
             }
@@ -1408,9 +1409,9 @@ public class DiffMatchPatch<char_t> {
      *            List of Diff objects.
      * @return Destination text.
      */
-    public Text<char_t> diff_text2(List<Diff<char_t>> diffs) {
-        ListText<char_t> text = new ListText<char_t>();
-        for (Diff<char_t> aDiff : diffs) {
+    public IRow<cell_t> diff_text2(List<Diff<cell_t>> diffs) {
+        MutableRow<cell_t> text = new MutableRow<cell_t>();
+        for (Diff<cell_t> aDiff : diffs) {
             if (aDiff.operation != Operation.DELETE) {
                 text.append(aDiff.text);
             }
@@ -1425,11 +1426,11 @@ public class DiffMatchPatch<char_t> {
      *            List of Diff objects.
      * @return Number of changes.
      */
-    public int diff_levenshtein(List<Diff<char_t>> diffs) {
+    public int diff_levenshtein(List<Diff<cell_t>> diffs) {
         int levenshtein = 0;
         int insertions = 0;
         int deletions = 0;
-        for (Diff<char_t> aDiff : diffs) {
+        for (Diff<cell_t> aDiff : diffs) {
             switch (aDiff.operation) {
             case INSERT:
                 insertions += aDiff.text.length();
@@ -1458,9 +1459,9 @@ public class DiffMatchPatch<char_t> {
      *            List of Diff objects.
      * @return Delta text.
      */
-    public String diff_toDelta(List<Diff<char_t>> diffs) {
+    public String diff_toDelta(List<Diff<cell_t>> diffs) {
         StringBuilder text = new StringBuilder();
-        for (Diff<char_t> aDiff : diffs) {
+        for (Diff<cell_t> aDiff : diffs) {
             switch (aDiff.operation) {
             case INSERT:
                 try {
@@ -1500,9 +1501,9 @@ public class DiffMatchPatch<char_t> {
      * @throws IllegalArgumentException
      *             If invalid input.
      */
-    public LinkedList<Diff<char_t>> diff_fromDelta(Text<char_t> text1, String delta)
+    public LinkedList<Diff<cell_t>> diff_fromDelta(IRow<cell_t> text1, String delta)
             throws IllegalArgumentException {
-        LinkedList<Diff<char_t>> diffs = new LinkedList<Diff<char_t>>();
+        LinkedList<Diff<cell_t>> diffs = new LinkedList<Diff<cell_t>>();
         int pointer = 0; // Cursor in text1
         String[] tokens = delta.split("\t");
         for (String token : tokens) {
@@ -1526,8 +1527,8 @@ public class DiffMatchPatch<char_t> {
                     // Malformed URI sequence.
                     throw new IllegalArgumentException("Illegal escape in diff_fromDelta: " + param, e);
                 }
-                Text<char_t> line = charType.parse(param);
-                diffs.add(new Diff<char_t>(Operation.INSERT, line));
+                IRow<cell_t> line = rowType.parse(param);
+                diffs.add(new Diff<cell_t>(Operation.INSERT, line));
                 break;
             case '-':
                 // Fall through.
@@ -1541,18 +1542,18 @@ public class DiffMatchPatch<char_t> {
                 if (n < 0) {
                     throw new IllegalArgumentException("Negative number in diff_fromDelta: " + param);
                 }
-                Text<char_t> text;
+                IRow<cell_t> text;
                 try {
-                    text = text1.substring(pointer, pointer += n);
+                    text = text1.slice(pointer, pointer += n);
                 } catch (StringIndexOutOfBoundsException e) {
                     throw new IllegalArgumentException(
                             "Delta length (" + pointer + ") larger than source text length (" + text1.length() + ").",
                             e);
                 }
                 if (token.charAt(0) == '=') {
-                    diffs.add(new Diff<char_t>(Operation.EQUAL, text));
+                    diffs.add(new Diff<cell_t>(Operation.EQUAL, text));
                 } else {
-                    diffs.add(new Diff<char_t>(Operation.DELETE, text));
+                    diffs.add(new Diff<cell_t>(Operation.DELETE, text));
                 }
                 break;
             default:
@@ -1580,7 +1581,7 @@ public class DiffMatchPatch<char_t> {
      *            The location to search around.
      * @return Best match index or -1.
      */
-    public int match_main(Text<char_t> text, Text<char_t> pattern, int loc) {
+    public int match_main(IRow<cell_t> text, IRow<cell_t> pattern, int loc) {
         // Check for null inputs.
         if (text == null || pattern == null) {
             throw new IllegalArgumentException("Null inputs. (match_main)");
@@ -1593,8 +1594,7 @@ public class DiffMatchPatch<char_t> {
         } else if (text.length() == 0) {
             // Nothing to match.
             return -1;
-        } else if (loc + pattern.length() <= text.length()
-                && text.substring(loc, loc + pattern.length()).equals(pattern)) {
+        } else if (loc + pattern.length() <= text.length() && text.slice(loc, loc + pattern.length()).equals(pattern)) {
             // Perfect match at the perfect spot! (Includes case of null pattern)
             return loc;
         } else {
@@ -1615,11 +1615,11 @@ public class DiffMatchPatch<char_t> {
      *            The location to search around.
      * @return Best match index or -1.
      */
-    int match_bitap(Text<char_t> text, Text<char_t> pattern, int loc) {
+    int match_bitap(IRow<cell_t> text, IRow<cell_t> pattern, int loc) {
         assert (Match_MaxBits == 0 || pattern.length() <= Match_MaxBits) : "Pattern too long for this application.";
 
         // Initialise the alphabet.
-        Map<char_t, Integer> s = match_alphabet(pattern);
+        Map<cell_t, Integer> s = match_alphabet(pattern);
 
         // Highest score beyond which we give up.
         double score_threshold = Match_Threshold;
@@ -1665,11 +1665,11 @@ public class DiffMatchPatch<char_t> {
             rd[finish + 1] = (1 << d) - 1;
             for (int j = finish; j >= start; j--) {
                 int charMatch;
-                if (text.length() <= j - 1 || !s.containsKey(text.charAt(j - 1))) {
+                if (text.length() <= j - 1 || !s.containsKey(text.cellAt(j - 1))) {
                     // Out of range.
                     charMatch = 0;
                 } else {
-                    charMatch = s.get(text.charAt(j - 1));
+                    charMatch = s.get(text.cellAt(j - 1));
                 }
                 if (d == 0) {
                     // First pass: exact match.
@@ -1719,7 +1719,7 @@ public class DiffMatchPatch<char_t> {
      *            Pattern being sought.
      * @return Overall score for match (0.0 = good, 1.0 = bad).
      */
-    private double match_bitapScore(int e, int x, int loc, Text<char_t> pattern) {
+    private double match_bitapScore(int e, int x, int loc, IRow<cell_t> pattern) {
         float accuracy = (float) e / pattern.length();
         int proximity = Math.abs(loc - x);
         if (Match_Distance == 0) {
@@ -1736,15 +1736,15 @@ public class DiffMatchPatch<char_t> {
      *            The text to encode.
      * @return Hash of character locations.
      */
-    Map<char_t, Integer> match_alphabet(Text<char_t> pattern) {
-        Map<char_t, Integer> s = new HashMap<char_t, Integer>();
+    Map<cell_t, Integer> match_alphabet(IRow<cell_t> pattern) {
+        Map<cell_t, Integer> s = new HashMap<cell_t, Integer>();
         int len = pattern.length();
         for (int i = 0; i < len; i++) {
-            char_t c = pattern.charAt(i);
+            cell_t c = pattern.cellAt(i);
             s.put(c, 0);
         }
         for (int i = 0; i < len; i++) {
-            char_t c = pattern.charAt(i);
+            cell_t c = pattern.cellAt(i);
             s.put(c, s.get(c) | (1 << (pattern.length() - i - 1)));
         }
         return s;
@@ -1761,11 +1761,11 @@ public class DiffMatchPatch<char_t> {
      * @param text
      *            Source text.
      */
-    void patch_addContext(Patch<char_t> patch, Text<char_t> text) {
+    void patch_addContext(Patch<cell_t> patch, IRow<cell_t> text) {
         if (text.length() == 0) {
             return;
         }
-        Text<char_t> pattern = text.substring(patch.start2, patch.start2 + patch.length1);
+        IRow<cell_t> pattern = text.slice(patch.start2, patch.start2 + patch.length1);
         int padding = 0;
 
         // Look for the first and last matches of pattern in text. If two different
@@ -1780,21 +1780,21 @@ public class DiffMatchPatch<char_t> {
             padding += Patch_Margin;
             int start = Math.max(0, patch.start2 - padding);
             int end = Math.min(text.length(), patch.start2 + patch.length1 + padding);
-            pattern = text.substring(start, end);
+            pattern = text.slice(start, end);
         }
         // Add one chunk for good luck.
         padding += Patch_Margin;
 
         // Add the prefix.
-        Text<char_t> prefix = text.substring(Math.max(0, patch.start2 - padding), patch.start2);
+        IRow<cell_t> prefix = text.slice(Math.max(0, patch.start2 - padding), patch.start2);
         if (prefix.length() != 0) {
-            patch.diffs.addFirst(new Diff<char_t>(Operation.EQUAL, prefix));
+            patch.diffs.addFirst(new Diff<cell_t>(Operation.EQUAL, prefix));
         }
         // Add the suffix.
-        Text<char_t> suffix = text.substring(patch.start2 + patch.length1,
+        IRow<cell_t> suffix = text.slice(patch.start2 + patch.length1,
                 Math.min(text.length(), patch.start2 + patch.length1 + padding));
         if (suffix.length() != 0) {
-            patch.diffs.addLast(new Diff<char_t>(Operation.EQUAL, suffix));
+            patch.diffs.addLast(new Diff<cell_t>(Operation.EQUAL, suffix));
         }
 
         // Roll back the start points.
@@ -1814,12 +1814,12 @@ public class DiffMatchPatch<char_t> {
      *            New text.
      * @return LinkedList of Patch objects.
      */
-    public LinkedList<Patch<char_t>> patch_make(Text<char_t> text1, Text<char_t> text2) {
+    public LinkedList<Patch<cell_t>> patch_make(IRow<cell_t> text1, IRow<cell_t> text2) {
         if (text1 == null || text2 == null) {
             throw new IllegalArgumentException("Null inputs. (patch_make)");
         }
         // No diffs provided, compute our own.
-        LinkedList<Diff<char_t>> diffs = diff_main(text1, text2, true);
+        LinkedList<Diff<cell_t>> diffs = diff_main(text1, text2, true);
         if (diffs.size() > 2) {
             diff_cleanupSemantic(diffs);
             diff_cleanupEfficiency(diffs);
@@ -1835,12 +1835,12 @@ public class DiffMatchPatch<char_t> {
      *            Array of Diff objects for text1 to text2.
      * @return LinkedList of Patch objects.
      */
-    public LinkedList<Patch<char_t>> patch_make(LinkedList<Diff<char_t>> diffs) {
+    public LinkedList<Patch<cell_t>> patch_make(LinkedList<Diff<cell_t>> diffs) {
         if (diffs == null) {
             throw new IllegalArgumentException("Null inputs. (patch_make)");
         }
         // No origin string provided, compute our own.
-        Text<char_t> text1 = diff_text1(diffs);
+        IRow<cell_t> text1 = diff_text1(diffs);
         return patch_make(text1, diffs);
     }
 
@@ -1858,8 +1858,8 @@ public class DiffMatchPatch<char_t> {
      * @deprecated Prefer patch_make(String text1, LinkedList<Diff> diffs).
      */
     @Deprecated
-    public LinkedList<Patch<char_t>> patch_make(Text<char_t> text1, Text<char_t> text2,
-            LinkedList<Diff<char_t>> diffs) {
+    public LinkedList<Patch<cell_t>> patch_make(IRow<cell_t> text1, IRow<cell_t> text2,
+            LinkedList<Diff<cell_t>> diffs) {
         return patch_make(text1, diffs);
     }
 
@@ -1873,24 +1873,24 @@ public class DiffMatchPatch<char_t> {
      *            Array of Diff objects for text1 to text2.
      * @return LinkedList of Patch objects.
      */
-    public LinkedList<Patch<char_t>> patch_make(Text<char_t> text1, LinkedList<Diff<char_t>> diffs) {
+    public LinkedList<Patch<cell_t>> patch_make(IRow<cell_t> text1, LinkedList<Diff<cell_t>> diffs) {
         if (text1 == null || diffs == null) {
             throw new IllegalArgumentException("Null inputs. (patch_make)");
         }
 
-        LinkedList<Patch<char_t>> patches = new LinkedList<Patch<char_t>>();
+        LinkedList<Patch<cell_t>> patches = new LinkedList<Patch<cell_t>>();
         if (diffs.isEmpty()) {
             return patches; // Get rid of the null case.
         }
-        Patch<char_t> patch = new Patch<char_t>();
+        Patch<cell_t> patch = new Patch<cell_t>();
         int char_count1 = 0; // Number of characters into the text1 string.
         int char_count2 = 0; // Number of characters into the text2 string.
         // Start with text1 (prepatch_text) and apply the diffs until we arrive at
         // text2 (postpatch_text). We recreate the patches one by one to determine
         // context info.
-        Text<char_t> prepatch_text = text1;
-        Text<char_t> postpatch_text = text1;
-        for (Diff<char_t> aDiff : diffs) {
+        IRow<cell_t> prepatch_text = text1;
+        IRow<cell_t> postpatch_text = text1;
+        for (Diff<cell_t> aDiff : diffs) {
             if (patch.diffs.isEmpty() && aDiff.operation != Operation.EQUAL) {
                 // A new patch starts here.
                 patch.start1 = char_count1;
@@ -1901,14 +1901,14 @@ public class DiffMatchPatch<char_t> {
             case INSERT:
                 patch.diffs.add(aDiff);
                 patch.length2 += aDiff.text.length();
-                postpatch_text = postpatch_text.substring(0, char_count2).concat(aDiff.text)
-                        .concat(postpatch_text.substring(char_count2));
+                postpatch_text = postpatch_text.slice(0, char_count2).concat(aDiff.text)
+                        .concat(postpatch_text.slice(char_count2));
                 break;
             case DELETE:
                 patch.length1 += aDiff.text.length();
                 patch.diffs.add(aDiff);
-                postpatch_text = postpatch_text.substring(0, char_count2)
-                        .concat(postpatch_text.substring(char_count2 + aDiff.text.length()));
+                postpatch_text = postpatch_text.slice(0, char_count2)
+                        .concat(postpatch_text.slice(char_count2 + aDiff.text.length()));
                 break;
             case EQUAL:
                 if (aDiff.text.length() <= 2 * Patch_Margin && !patch.diffs.isEmpty() && aDiff != diffs.getLast()) {
@@ -1923,7 +1923,7 @@ public class DiffMatchPatch<char_t> {
                     if (!patch.diffs.isEmpty()) {
                         patch_addContext(patch, prepatch_text);
                         patches.add(patch);
-                        patch = new Patch<char_t>();
+                        patch = new Patch<cell_t>();
                         // Unlike Unidiff, our patch lists have a rolling context.
                         // https://github.com/google/diff-match-patch/wiki/Unidiff
                         // Update prepatch text & pos to reflect the application of the
@@ -1959,12 +1959,12 @@ public class DiffMatchPatch<char_t> {
      *            Array of Patch objects.
      * @return Array of Patch objects.
      */
-    public LinkedList<Patch<char_t>> patch_deepCopy(LinkedList<Patch<char_t>> patches) {
-        LinkedList<Patch<char_t>> patchesCopy = new LinkedList<Patch<char_t>>();
-        for (Patch<char_t> aPatch : patches) {
-            Patch<char_t> patchCopy = new Patch<char_t>();
-            for (Diff<char_t> aDiff : aPatch.diffs) {
-                Diff<char_t> diffCopy = new Diff<char_t>(aDiff.operation, aDiff.text);
+    public LinkedList<Patch<cell_t>> patch_deepCopy(LinkedList<Patch<cell_t>> patches) {
+        LinkedList<Patch<cell_t>> patchesCopy = new LinkedList<Patch<cell_t>>();
+        for (Patch<cell_t> aPatch : patches) {
+            Patch<cell_t> patchCopy = new Patch<cell_t>();
+            for (Diff<cell_t> aDiff : aPatch.diffs) {
+                Diff<cell_t> diffCopy = new Diff<cell_t>(aDiff.operation, aDiff.text);
                 patchCopy.diffs.add(diffCopy);
             }
             patchCopy.start1 = aPatch.start1;
@@ -1986,15 +1986,15 @@ public class DiffMatchPatch<char_t> {
      *            Old text.
      * @return Two element Object array, containing the new text and an array of boolean values.
      */
-    public PatchApplyResult<char_t> patch_apply(LinkedList<Patch<char_t>> patches, Text<char_t> text) {
+    public PatchApplyResult<cell_t> patch_apply(LinkedList<Patch<cell_t>> patches, IRow<cell_t> text) {
         if (patches.isEmpty()) {
-            return new PatchApplyResult<char_t>(text);
+            return new PatchApplyResult<cell_t>(text);
         }
 
         // Deep copy the patches so that no changes are made to originals.
         patches = patch_deepCopy(patches);
 
-        Text<char_t> nullPadding = patch_addPadding(patches);
+        IRow<cell_t> nullPadding = patch_addPadding(patches);
         text = nullPadding.concat(text).concat(nullPadding);
         patch_splitMax(patches);
 
@@ -2005,17 +2005,17 @@ public class DiffMatchPatch<char_t> {
         // has an effective expected position of 22.
         int delta = 0;
         boolean[] results = new boolean[patches.size()];
-        for (Patch<char_t> aPatch : patches) {
+        for (Patch<cell_t> aPatch : patches) {
             int expected_loc = aPatch.start2 + delta;
-            Text<char_t> text1 = diff_text1(aPatch.diffs);
+            IRow<cell_t> text1 = diff_text1(aPatch.diffs);
             int start_loc;
             int end_loc = -1;
             if (text1.length() > this.Match_MaxBits) {
                 // patch_splitMax will only provide an oversized pattern in the case of
                 // a monster delete.
-                start_loc = match_main(text, text1.substring(0, this.Match_MaxBits), expected_loc);
+                start_loc = match_main(text, text1.slice(0, this.Match_MaxBits), expected_loc);
                 if (start_loc != -1) {
-                    end_loc = match_main(text, text1.substring(text1.length() - this.Match_MaxBits),
+                    end_loc = match_main(text, text1.slice(text1.length() - this.Match_MaxBits),
                             expected_loc + text1.length() - this.Match_MaxBits);
                     if (end_loc == -1 || start_loc >= end_loc) {
                         // Can't find valid trailing context. Drop this patch.
@@ -2034,20 +2034,20 @@ public class DiffMatchPatch<char_t> {
                 // Found a match. :)
                 results[x] = true;
                 delta = start_loc - expected_loc;
-                Text<char_t> text2;
+                IRow<cell_t> text2;
                 if (end_loc == -1) {
-                    text2 = text.substring(start_loc, Math.min(start_loc + text1.length(), text.length()));
+                    text2 = text.slice(start_loc, Math.min(start_loc + text1.length(), text.length()));
                 } else {
-                    text2 = text.substring(start_loc, Math.min(end_loc + this.Match_MaxBits, text.length()));
+                    text2 = text.slice(start_loc, Math.min(end_loc + this.Match_MaxBits, text.length()));
                 }
                 if (text1.equals(text2)) {
                     // Perfect match, just shove the replacement text in.
-                    text = text.substring(0, start_loc).concat(diff_text2(aPatch.diffs))
-                            .concat(text.substring(start_loc + text1.length()));
+                    text = text.slice(0, start_loc).concat(diff_text2(aPatch.diffs))
+                            .concat(text.slice(start_loc + text1.length()));
                 } else {
                     // Imperfect match. Run a diff to get a framework of equivalent
                     // indices.
-                    LinkedList<Diff<char_t>> diffs = diff_main(text1, text2, false);
+                    LinkedList<Diff<cell_t>> diffs = diff_main(text1, text2, false);
                     if (text1.length() > this.Match_MaxBits
                             && diff_levenshtein(diffs) / (float) text1.length() > this.Patch_DeleteThreshold) {
                         // The end points match, but the content is unacceptably bad.
@@ -2055,17 +2055,17 @@ public class DiffMatchPatch<char_t> {
                     } else {
                         diff_cleanupSemanticLossless(diffs);
                         int index1 = 0;
-                        for (Diff<char_t> aDiff : aPatch.diffs) {
+                        for (Diff<cell_t> aDiff : aPatch.diffs) {
                             if (aDiff.operation != Operation.EQUAL) {
                                 int index2 = diff_xIndex(diffs, index1);
                                 if (aDiff.operation == Operation.INSERT) {
                                     // Insertion
-                                    text = text.substring(0, start_loc + index2).concat(aDiff.text)
-                                            .concat(text.substring(start_loc + index2));
+                                    text = text.slice(0, start_loc + index2).concat(aDiff.text)
+                                            .concat(text.slice(start_loc + index2));
                                 } else if (aDiff.operation == Operation.DELETE) {
                                     // Deletion
-                                    text = text.substring(0, start_loc + index2).concat(text
-                                            .substring(start_loc + diff_xIndex(diffs, index1 + aDiff.text.length())));
+                                    text = text.slice(0, start_loc + index2).concat(
+                                            text.slice(start_loc + diff_xIndex(diffs, index1 + aDiff.text.length())));
                                 }
                             }
                             if (aDiff.operation != Operation.DELETE) {
@@ -2078,8 +2078,8 @@ public class DiffMatchPatch<char_t> {
             x++;
         }
         // Strip the padding off.
-        text = text.substring(nullPadding.length(), text.length() - nullPadding.length());
-        return new PatchApplyResult<char_t>(text, results);
+        text = text.slice(nullPadding.length(), text.length() - nullPadding.length());
+        return new PatchApplyResult<cell_t>(text, results);
     }
 
     /**
@@ -2090,35 +2090,35 @@ public class DiffMatchPatch<char_t> {
      *            Array of Patch objects.
      * @return The padding string added to each side.
      */
-    public Text<char_t> patch_addPadding(LinkedList<Patch<char_t>> patches) {
+    public IRow<cell_t> patch_addPadding(LinkedList<Patch<cell_t>> patches) {
         short paddingLength = this.Patch_Margin;
-        ListText<char_t> nullPadding = new ListText<char_t>();
+        MutableRow<cell_t> nullPadding = new MutableRow<cell_t>();
         for (short x = 1; x <= paddingLength; x++) {
-            char_t pad = charType.createPadding(x);
+            cell_t pad = rowType.createPadding(x);
             nullPadding.append(pad);
         }
 
         // Bump all the patches forward.
-        for (Patch<char_t> aPatch : patches) {
+        for (Patch<cell_t> aPatch : patches) {
             aPatch.start1 += paddingLength;
             aPatch.start2 += paddingLength;
         }
 
         // Add some padding on start of first diff.
-        Patch<char_t> patch = patches.getFirst();
-        LinkedList<Diff<char_t>> diffs = patch.diffs;
+        Patch<cell_t> patch = patches.getFirst();
+        LinkedList<Diff<cell_t>> diffs = patch.diffs;
         if (diffs.isEmpty() || diffs.getFirst().operation != Operation.EQUAL) {
             // Add nullPadding equality.
-            diffs.addFirst(new Diff<char_t>(Operation.EQUAL, nullPadding));
+            diffs.addFirst(new Diff<cell_t>(Operation.EQUAL, nullPadding));
             patch.start1 -= paddingLength; // Should be 0.
             patch.start2 -= paddingLength; // Should be 0.
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
         } else if (paddingLength > diffs.getFirst().text.length()) {
             // Grow first equality.
-            Diff<char_t> firstDiff = diffs.getFirst();
+            Diff<cell_t> firstDiff = diffs.getFirst();
             int extraLength = paddingLength - firstDiff.text.length();
-            firstDiff.text = nullPadding.substring(firstDiff.text.length()).concat(firstDiff.text);
+            firstDiff.text = nullPadding.slice(firstDiff.text.length()).concat(firstDiff.text);
             patch.start1 -= extraLength;
             patch.start2 -= extraLength;
             patch.length1 += extraLength;
@@ -2130,14 +2130,14 @@ public class DiffMatchPatch<char_t> {
         diffs = patch.diffs;
         if (diffs.isEmpty() || diffs.getLast().operation != Operation.EQUAL) {
             // Add nullPadding equality.
-            diffs.addLast(new Diff<char_t>(Operation.EQUAL, nullPadding));
+            diffs.addLast(new Diff<cell_t>(Operation.EQUAL, nullPadding));
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
         } else if (paddingLength > diffs.getLast().text.length()) {
             // Grow last equality.
-            Diff<char_t> lastDiff = diffs.getLast();
+            Diff<cell_t> lastDiff = diffs.getLast();
             int extraLength = paddingLength - lastDiff.text.length();
-            lastDiff.text = lastDiff.text.concat(nullPadding.substring(0, extraLength));
+            lastDiff.text = lastDiff.text.concat(nullPadding.slice(0, extraLength));
             patch.length1 += extraLength;
             patch.length2 += extraLength;
         }
@@ -2152,16 +2152,16 @@ public class DiffMatchPatch<char_t> {
      * @param patches
      *            LinkedList of Patch objects.
      */
-    public void patch_splitMax(LinkedList<Patch<char_t>> patches) {
+    public void patch_splitMax(LinkedList<Patch<cell_t>> patches) {
         short patch_size = Match_MaxBits;
-        Text<char_t> precontext, postcontext;
-        Patch<char_t> patch;
+        IRow<cell_t> precontext, postcontext;
+        Patch<cell_t> patch;
         int start1, start2;
         boolean empty;
         Operation diff_type;
-        Text<char_t> diff_text;
-        ListIterator<Patch<char_t>> pointer = patches.listIterator();
-        Patch<char_t> bigpatch = pointer.hasNext() ? pointer.next() : null;
+        IRow<cell_t> diff_text;
+        ListIterator<Patch<cell_t>> pointer = patches.listIterator();
+        Patch<cell_t> bigpatch = pointer.hasNext() ? pointer.next() : null;
         while (bigpatch != null) {
             if (bigpatch.length1 <= Match_MaxBits) {
                 bigpatch = pointer.hasNext() ? pointer.next() : null;
@@ -2171,16 +2171,16 @@ public class DiffMatchPatch<char_t> {
             pointer.remove();
             start1 = bigpatch.start1;
             start2 = bigpatch.start2;
-            precontext = Texts.empty();
+            precontext = Rows.empty();
             while (!bigpatch.diffs.isEmpty()) {
                 // Create one of several smaller patches.
-                patch = new Patch<char_t>();
+                patch = new Patch<cell_t>();
                 empty = true;
                 patch.start1 = start1 - precontext.length();
                 patch.start2 = start2 - precontext.length();
                 if (precontext.length() != 0) {
                     patch.length1 = patch.length2 = precontext.length();
-                    patch.diffs.add(new Diff<char_t>(Operation.EQUAL, precontext));
+                    patch.diffs.add(new Diff<cell_t>(Operation.EQUAL, precontext));
                 }
                 while (!bigpatch.diffs.isEmpty() && patch.length1 < patch_size - Patch_Margin) {
                     diff_type = bigpatch.diffs.getFirst().operation;
@@ -2198,11 +2198,11 @@ public class DiffMatchPatch<char_t> {
                         patch.length1 += diff_text.length();
                         start1 += diff_text.length();
                         empty = false;
-                        patch.diffs.add(new Diff<char_t>(diff_type, diff_text));
+                        patch.diffs.add(new Diff<cell_t>(diff_type, diff_text));
                         bigpatch.diffs.removeFirst();
                     } else {
                         // Deletion or equality. Only take as much as we can stomach.
-                        diff_text = diff_text.substring(0,
+                        diff_text = diff_text.slice(0,
                                 Math.min(diff_text.length(), patch_size - patch.length1 - Patch_Margin));
                         patch.length1 += diff_text.length();
                         start1 += diff_text.length();
@@ -2212,21 +2212,20 @@ public class DiffMatchPatch<char_t> {
                         } else {
                             empty = false;
                         }
-                        patch.diffs.add(new Diff<char_t>(diff_type, diff_text));
+                        patch.diffs.add(new Diff<cell_t>(diff_type, diff_text));
                         if (diff_text.equals(bigpatch.diffs.getFirst().text)) {
                             bigpatch.diffs.removeFirst();
                         } else {
-                            bigpatch.diffs.getFirst().text = bigpatch.diffs.getFirst().text
-                                    .substring(diff_text.length());
+                            bigpatch.diffs.getFirst().text = bigpatch.diffs.getFirst().text.slice(diff_text.length());
                         }
                     }
                 }
                 // Compute the head context for the next patch.
                 precontext = diff_text2(patch.diffs);
-                precontext = precontext.substring(Math.max(0, precontext.length() - Patch_Margin));
+                precontext = precontext.slice(Math.max(0, precontext.length() - Patch_Margin));
                 // Append the end context for this patch.
                 if (diff_text1(bigpatch.diffs).length() > Patch_Margin) {
-                    postcontext = diff_text1(bigpatch.diffs).substring(0, Patch_Margin);
+                    postcontext = diff_text1(bigpatch.diffs).slice(0, Patch_Margin);
                 } else {
                     postcontext = diff_text1(bigpatch.diffs);
                 }
@@ -2236,7 +2235,7 @@ public class DiffMatchPatch<char_t> {
                     if (!patch.diffs.isEmpty() && patch.diffs.getLast().operation == Operation.EQUAL) {
                         patch.diffs.getLast().text = patch.diffs.getLast().text.concat(postcontext);
                     } else {
-                        patch.diffs.add(new Diff<char_t>(Operation.EQUAL, postcontext));
+                        patch.diffs.add(new Diff<cell_t>(Operation.EQUAL, postcontext));
                     }
                 }
                 if (!empty) {
@@ -2254,9 +2253,9 @@ public class DiffMatchPatch<char_t> {
      *            List of Patch objects.
      * @return Text representation of patches.
      */
-    public String patch_toText(List<Patch<char_t>> patches) {
+    public String patch_toText(List<Patch<cell_t>> patches) {
         StringBuilder text = new StringBuilder();
-        for (Patch<char_t> aPatch : patches) {
+        for (Patch<cell_t> aPatch : patches) {
             text.append(aPatch);
         }
         return text.toString();
@@ -2271,14 +2270,14 @@ public class DiffMatchPatch<char_t> {
      * @throws IllegalArgumentException
      *             If invalid input.
      */
-    public List<Patch<char_t>> patch_fromText(String patchcode)
+    public List<Patch<cell_t>> patch_fromText(String patchcode)
             throws IllegalArgumentException {
-        List<Patch<char_t>> patches = new LinkedList<Patch<char_t>>();
+        List<Patch<cell_t>> patches = new LinkedList<Patch<cell_t>>();
         if (patchcode.length() == 0) {
             return patches;
         }
         LinkedList<String> codelines = new LinkedList<String>(Arrays.asList(patchcode.split("\n")));
-        Patch<char_t> patch;
+        Patch<cell_t> patch;
         Pattern patchHeader = Pattern.compile("^@@ -(\\d+),?(\\d*) \\+(\\d+),?(\\d*) @@$");
         Matcher m;
         char sign;
@@ -2288,7 +2287,7 @@ public class DiffMatchPatch<char_t> {
             if (!m.matches()) {
                 throw new IllegalArgumentException("Invalid patch string: " + codelines.getFirst());
             }
-            patch = new Patch<char_t>();
+            patch = new Patch<cell_t>();
             patches.add(patch);
             patch.start1 = Integer.parseInt(m.group(1));
             if (m.group(2).length() == 0) {
@@ -2333,16 +2332,16 @@ public class DiffMatchPatch<char_t> {
                     throw new IllegalArgumentException("Illegal escape in patch_fromText: " + codeline, e);
                 }
 
-                Text<char_t> textline = charType.parse(codeline);
+                IRow<cell_t> textline = rowType.parse(codeline);
                 if (sign == '-') {
                     // Deletion.
-                    patch.diffs.add(new Diff<char_t>(Operation.DELETE, textline));
+                    patch.diffs.add(new Diff<cell_t>(Operation.DELETE, textline));
                 } else if (sign == '+') {
                     // Insertion.
-                    patch.diffs.add(new Diff<char_t>(Operation.INSERT, textline));
+                    patch.diffs.add(new Diff<cell_t>(Operation.INSERT, textline));
                 } else if (sign == ' ') {
                     // Minor equality.
-                    patch.diffs.add(new Diff<char_t>(Operation.EQUAL, textline));
+                    patch.diffs.add(new Diff<cell_t>(Operation.EQUAL, textline));
                 } else if (sign == '@') {
                     // Start of next patch.
                     break;
@@ -2368,7 +2367,7 @@ public class DiffMatchPatch<char_t> {
         /**
          * The text associated with this diff operation.
          */
-        public Text<char_t> text;
+        public IRow<char_t> text;
 
         public boolean atom;
 
@@ -2380,11 +2379,11 @@ public class DiffMatchPatch<char_t> {
          * @param text
          *            The text being applied.
          */
-        public Diff(Operation operation, Text<char_t> text) {
+        public Diff(Operation operation, IRow<char_t> text) {
             this(operation, text, false);
         }
 
-        public Diff(Operation operation, Text<char_t> text, boolean atom) {
+        public Diff(Operation operation, IRow<char_t> text, boolean atom) {
             // Construct a diff with the specified operation and text.
             this.operation = operation;
             this.text = text;
@@ -2395,7 +2394,7 @@ public class DiffMatchPatch<char_t> {
             int n = text.length();
             StringBuilder buf = new StringBuilder(n * 100);
             for (int i = 0; i < n; i++) {
-                char_t line = text.charAt(i);
+                char_t line = text.cellAt(i);
                 if (atom)
                     buf.append((char) ((Integer) line).intValue());
                 else
