@@ -39,7 +39,7 @@ public class PatchList<cell_t>
         for (Patch<cell_t> aPatch : this) {
             Patch<cell_t> patchCopy = new Patch<cell_t>(diff);
             for (RowChangement<cell_t> aDiff : aPatch.diffs) {
-                RowChangement<cell_t> diffCopy = new RowChangement<cell_t>(aDiff.operation, aDiff.text);
+                RowChangement<cell_t> diffCopy = new RowChangement<cell_t>(aDiff.operation, aDiff.row);
                 patchCopy.diffs.add(diffCopy);
             }
             patchCopy.start1 = aPatch.start1;
@@ -57,20 +57,20 @@ public class PatchList<cell_t>
      *
      * @param patches
      *            Array of Patch objects
-     * @param text
+     * @param row
      *            Old text.
      * @return Two element Object array, containing the new text and an array of boolean values.
      */
-    public PatchApplyResult<cell_t> apply(IRow<cell_t> text) {
+    public PatchApplyResult<cell_t> apply(IRow<cell_t> row) {
         if (this.isEmpty()) {
-            return new PatchApplyResult<cell_t>(text);
+            return new PatchApplyResult<cell_t>(row);
         }
 
         // Deep copy the patches so that no changes are made to originals.
         PatchList<cell_t> patches = this.deepCopy();
 
         IRow<cell_t> nullPadding = patches.addPadding();
-        text = nullPadding.concat(text).concat(nullPadding);
+        row = nullPadding.concat(row).concat(nullPadding);
         patches.splitMax();
 
         int x = 0;
@@ -82,15 +82,15 @@ public class PatchList<cell_t>
         boolean[] results = new boolean[patches.size()];
         for (Patch<cell_t> aPatch : patches) {
             int expected_loc = aPatch.start2 + delta;
-            IRow<cell_t> text1 = aPatch.diffs.text1();
+            IRow<cell_t> text1 = aPatch.diffs.restoreRow1();
             int start_loc;
             int end_loc = -1;
             if (text1.length() > config.Match_MaxBits) {
                 // patch_splitMax will only provide an oversized pattern in the case of
                 // a monster delete.
-                start_loc = matcher.search(text, text1.slice(0, config.Match_MaxBits), expected_loc);
+                start_loc = matcher.search(row, text1.slice(0, config.Match_MaxBits), expected_loc);
                 if (start_loc != -1) {
-                    end_loc = matcher.search(text, text1.slice(text1.length() - config.Match_MaxBits),
+                    end_loc = matcher.search(row, text1.slice(text1.length() - config.Match_MaxBits),
                             expected_loc + text1.length() - config.Match_MaxBits);
                     if (end_loc == -1 || start_loc >= end_loc) {
                         // Can't find valid trailing context. Drop this patch.
@@ -98,7 +98,7 @@ public class PatchList<cell_t>
                     }
                 }
             } else {
-                start_loc = matcher.search(text, text1, expected_loc);
+                start_loc = matcher.search(row, text1, expected_loc);
             }
             if (start_loc == -1) {
                 // No match found. :(
@@ -111,14 +111,14 @@ public class PatchList<cell_t>
                 delta = start_loc - expected_loc;
                 IRow<cell_t> text2;
                 if (end_loc == -1) {
-                    text2 = text.slice(start_loc, Math.min(start_loc + text1.length(), text.length()));
+                    text2 = row.slice(start_loc, Math.min(start_loc + text1.length(), row.length()));
                 } else {
-                    text2 = text.slice(start_loc, Math.min(end_loc + config.Match_MaxBits, text.length()));
+                    text2 = row.slice(start_loc, Math.min(end_loc + config.Match_MaxBits, row.length()));
                 }
                 if (text1.equals(text2)) {
                     // Perfect match, just shove the replacement text in.
-                    text = text.slice(0, start_loc).concat(aPatch.diffs.text2())
-                            .concat(text.slice(start_loc + text1.length()));
+                    row = row.slice(0, start_loc).concat(aPatch.diffs.restoreRow2())
+                            .concat(row.slice(start_loc + text1.length()));
                 } else {
                     // Imperfect match. Run a diff to get a framework of equivalent
                     // indices.
@@ -135,16 +135,16 @@ public class PatchList<cell_t>
                                 int index2 = diffs.xIndex(index1);
                                 if (aDiff.operation == Operation.INSERT) {
                                     // Insertion
-                                    text = text.slice(0, start_loc + index2).concat(aDiff.text)
-                                            .concat(text.slice(start_loc + index2));
+                                    row = row.slice(0, start_loc + index2).concat(aDiff.row)
+                                            .concat(row.slice(start_loc + index2));
                                 } else if (aDiff.operation == Operation.DELETE) {
                                     // Deletion
-                                    text = text.slice(0, start_loc + index2)
-                                            .concat(text.slice(start_loc + diffs.xIndex(index1 + aDiff.text.length())));
+                                    row = row.slice(0, start_loc + index2)
+                                            .concat(row.slice(start_loc + diffs.xIndex(index1 + aDiff.row.length())));
                                 }
                             }
                             if (aDiff.operation != Operation.DELETE) {
-                                index1 += aDiff.text.length();
+                                index1 += aDiff.row.length();
                             }
                         }
                     }
@@ -153,8 +153,8 @@ public class PatchList<cell_t>
             x++;
         }
         // Strip the padding off.
-        text = text.slice(nullPadding.length(), text.length() - nullPadding.length());
-        return new PatchApplyResult<cell_t>(text, results);
+        row = row.slice(nullPadding.length(), row.length() - nullPadding.length());
+        return new PatchApplyResult<cell_t>(row, results);
     }
 
     /**
@@ -189,11 +189,11 @@ public class PatchList<cell_t>
             patch.start2 -= paddingLength; // Should be 0.
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
-        } else if (paddingLength > diffs.getFirst().text.length()) {
+        } else if (paddingLength > diffs.getFirst().row.length()) {
             // Grow first equality.
             RowChangement<cell_t> firstDiff = diffs.getFirst();
-            int extraLength = paddingLength - firstDiff.text.length();
-            firstDiff.text = nullPadding.slice(firstDiff.text.length()).concat(firstDiff.text);
+            int extraLength = paddingLength - firstDiff.row.length();
+            firstDiff.row = nullPadding.slice(firstDiff.row.length()).concat(firstDiff.row);
             patch.start1 -= extraLength;
             patch.start2 -= extraLength;
             patch.length1 += extraLength;
@@ -208,11 +208,11 @@ public class PatchList<cell_t>
             diffs.addLast(new RowChangement<cell_t>(Operation.EQUAL, nullPadding));
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
-        } else if (paddingLength > diffs.getLast().text.length()) {
+        } else if (paddingLength > diffs.getLast().row.length()) {
             // Grow last equality.
             RowChangement<cell_t> lastDiff = diffs.getLast();
-            int extraLength = paddingLength - lastDiff.text.length();
-            lastDiff.text = lastDiff.text.concat(nullPadding.slice(0, extraLength));
+            int extraLength = paddingLength - lastDiff.row.length();
+            lastDiff.row = lastDiff.row.concat(nullPadding.slice(0, extraLength));
             patch.length1 += extraLength;
             patch.length2 += extraLength;
         }
@@ -259,7 +259,7 @@ public class PatchList<cell_t>
                 }
                 while (!bigpatch.diffs.isEmpty() && patch.length1 < patch_size - config.Patch_Margin) {
                     diff_type = bigpatch.diffs.getFirst().operation;
-                    diff_text = bigpatch.diffs.getFirst().text;
+                    diff_text = bigpatch.diffs.getFirst().row;
                     if (diff_type == Operation.INSERT) {
                         // Insertions are harmless.
                         patch.length2 += diff_text.length();
@@ -288,27 +288,27 @@ public class PatchList<cell_t>
                             empty = false;
                         }
                         patch.diffs.add(new RowChangement<cell_t>(diff_type, diff_text));
-                        if (diff_text.equals(bigpatch.diffs.getFirst().text)) {
+                        if (diff_text.equals(bigpatch.diffs.getFirst().row)) {
                             bigpatch.diffs.removeFirst();
                         } else {
-                            bigpatch.diffs.getFirst().text = bigpatch.diffs.getFirst().text.slice(diff_text.length());
+                            bigpatch.diffs.getFirst().row = bigpatch.diffs.getFirst().row.slice(diff_text.length());
                         }
                     }
                 }
                 // Compute the head context for the next patch.
-                precontext = patch.diffs.text2();
+                precontext = patch.diffs.restoreRow2();
                 precontext = precontext.slice(Math.max(0, precontext.length() - config.Patch_Margin));
                 // Append the end context for this patch.
-                if (bigpatch.diffs.text1().length() > config.Patch_Margin) {
-                    postcontext = bigpatch.diffs.text1().slice(0, config.Patch_Margin);
+                if (bigpatch.diffs.restoreRow1().length() > config.Patch_Margin) {
+                    postcontext = bigpatch.diffs.restoreRow1().slice(0, config.Patch_Margin);
                 } else {
-                    postcontext = bigpatch.diffs.text1();
+                    postcontext = bigpatch.diffs.restoreRow1();
                 }
                 if (postcontext.length() != 0) {
                     patch.length1 += postcontext.length();
                     patch.length2 += postcontext.length();
                     if (!patch.diffs.isEmpty() && patch.diffs.getLast().operation == Operation.EQUAL) {
-                        patch.diffs.getLast().text = patch.diffs.getLast().text.concat(postcontext);
+                        patch.diffs.getLast().row = patch.diffs.getLast().row.concat(postcontext);
                     } else {
                         patch.diffs.add(new RowChangement<cell_t>(Operation.EQUAL, postcontext));
                     }

@@ -1,8 +1,5 @@
 package net.bodz.bas.compare.dmp;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-
 import net.bodz.bas.text.row.IRow;
 
 /**
@@ -119,14 +116,9 @@ public class Patch<cell_t> {
                 text.append(' ');
                 break;
             }
-            try {
-                text.append(URLEncoder.encode(aDiff.getTextAsString(), "UTF-8").replace('+', ' ')).append("\n");
-            } catch (UnsupportedEncodingException e) {
-                // Not likely on modern system.
-                throw new Error("This system does not support UTF-8.", e);
-            }
+            text.append(JsCompat.encodeUri(aDiff.getTextAsString())).append("\n");
         }
-        return UriUtils.unescapeForEncodeUriCompatability(text.toString());
+        return text.toString();
     }
 
 }

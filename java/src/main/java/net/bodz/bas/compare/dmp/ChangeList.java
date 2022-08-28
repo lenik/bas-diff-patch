@@ -2,7 +2,6 @@ package net.bodz.bas.compare.dmp;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -74,13 +73,13 @@ public class ChangeList<cell_t>
                 length_deletions1 = length_deletions2;
                 length_insertions2 = 0;
                 length_deletions2 = 0;
-                lastEquality = thisDiff.text;
+                lastEquality = thisDiff.row;
             } else {
                 // An insertion or deletion.
                 if (thisDiff.operation == Operation.INSERT) {
-                    length_insertions2 += thisDiff.text.length();
+                    length_insertions2 += thisDiff.row.length();
                 } else {
-                    length_deletions2 += thisDiff.text.length();
+                    length_deletions2 += thisDiff.row.length();
                 }
                 // Eliminate an equality that is smaller or equal to the edits on both sides of it.
                 if (lastEquality != null && (lastEquality.length() <= Math.max(length_insertions1, length_deletions1))
@@ -149,8 +148,8 @@ public class ChangeList<cell_t>
         }
         while (thisDiff != null) {
             if (prevDiff.operation == Operation.DELETE && thisDiff.operation == Operation.INSERT) {
-                IRow<cell_t> deletion = prevDiff.text;
-                IRow<cell_t> insertion = thisDiff.text;
+                IRow<cell_t> deletion = prevDiff.row;
+                IRow<cell_t> insertion = thisDiff.row;
                 int overlap_length1 = RowUtils.commonOverlap(deletion, insertion);
                 int overlap_length2 = RowUtils.commonOverlap(insertion, deletion);
                 if (overlap_length1 >= overlap_length2) {
@@ -158,8 +157,8 @@ public class ChangeList<cell_t>
                         // Overlap found. Insert an equality and trim the surrounding edits.
                         pointer.previous();
                         pointer.add(new RowChangement<cell_t>(Operation.EQUAL, insertion.slice(0, overlap_length1)));
-                        prevDiff.text = deletion.slice(0, deletion.length() - overlap_length1);
-                        thisDiff.text = insertion.slice(overlap_length1, insertion.length());
+                        prevDiff.row = deletion.slice(0, deletion.length() - overlap_length1);
+                        thisDiff.row = insertion.slice(overlap_length1, insertion.length());
                         // pointer.add inserts the element before the cursor, so there is
                         // no need to step past the new element.
                     }
@@ -170,9 +169,9 @@ public class ChangeList<cell_t>
                         pointer.previous();
                         pointer.add(new RowChangement<cell_t>(Operation.EQUAL, deletion.slice(0, overlap_length2)));
                         prevDiff.operation = Operation.INSERT;
-                        prevDiff.text = insertion.slice(0, insertion.length() - overlap_length2);
+                        prevDiff.row = insertion.slice(0, insertion.length() - overlap_length2);
                         thisDiff.operation = Operation.DELETE;
-                        thisDiff.text = deletion.slice(overlap_length2, deletion.length());
+                        thisDiff.row = deletion.slice(overlap_length2, deletion.length());
                         // pointer.add inserts the element before the cursor, so there is
                         // no need to step past the new element.
                     }
@@ -206,9 +205,9 @@ public class ChangeList<cell_t>
         while (nextDiff != null) {
             if (prevDiff.operation == Operation.EQUAL && nextDiff.operation == Operation.EQUAL) {
                 // This is a single edit surrounded by equalities.
-                equality1 = prevDiff.text;
-                edit = thisDiff.text;
-                equality2 = nextDiff.text;
+                equality1 = prevDiff.row;
+                edit = thisDiff.row;
+                equality2 = nextDiff.row;
 
                 // First, shift the edit as far left as possible.
                 commonOffset = RowUtils.commonSuffix(equality1, edit);
@@ -239,10 +238,10 @@ public class ChangeList<cell_t>
                     }
                 }
 
-                if (!prevDiff.text.equals(bestEquality1)) {
+                if (!prevDiff.row.equals(bestEquality1)) {
                     // We have an improvement, save it back to the diff.
                     if (bestEquality1.length() != 0) {
-                        prevDiff.text = bestEquality1;
+                        prevDiff.row = bestEquality1;
                     } else {
                         pointer.previous(); // Walk past nextDiff.
                         pointer.previous(); // Walk past thisDiff.
@@ -251,9 +250,9 @@ public class ChangeList<cell_t>
                         pointer.next(); // Walk past thisDiff.
                         pointer.next(); // Walk past nextDiff.
                     }
-                    thisDiff.text = bestEdit;
+                    thisDiff.row = bestEdit;
                     if (bestEquality2.length() != 0) {
-                        nextDiff.text = bestEquality2;
+                        nextDiff.row = bestEquality2;
                     } else {
                         pointer.remove(); // Delete nextDiff.
                         nextDiff = thisDiff;
@@ -296,12 +295,12 @@ public class ChangeList<cell_t>
         while (thisDiff != null) {
             if (thisDiff.operation == Operation.EQUAL) {
                 // Equality found.
-                if (thisDiff.text.length() < config.Diff_EditCost && (post_ins || post_del)) {
+                if (thisDiff.row.length() < config.Diff_EditCost && (post_ins || post_del)) {
                     // Candidate found.
                     equalities.push(thisDiff);
                     pre_ins = post_ins;
                     pre_del = post_del;
-                    lastEquality = thisDiff.text;
+                    lastEquality = thisDiff.row;
                 } else {
                     // Not a candidate, and can never become one.
                     equalities.clear();
@@ -397,12 +396,12 @@ public class ChangeList<cell_t>
             switch (thisDiff.operation) {
             case INSERT:
                 count_insert++;
-                text_insert.append(thisDiff.text);
+                text_insert.append(thisDiff.row);
                 prevEqual = null;
                 break;
             case DELETE:
                 count_delete++;
-                text_delete.append(thisDiff.text);
+                text_delete.append(thisDiff.row);
                 prevEqual = null;
                 break;
             case EQUAL:
@@ -425,7 +424,7 @@ public class ChangeList<cell_t>
                             if (pointer.hasPrevious()) {
                                 thisDiff = pointer.previous();
                                 assert thisDiff.operation == Operation.EQUAL : "Previous diff should have been an equality.";
-                                thisDiff.text = thisDiff.text.concat(text_insert.slice(0, commonlength));
+                                thisDiff.row = thisDiff.row.concat(text_insert.slice(0, commonlength));
                                 pointer.next();
                             } else {
                                 pointer.add(
@@ -438,8 +437,8 @@ public class ChangeList<cell_t>
                         commonlength = RowUtils.commonSuffix(text_insert, text_delete);
                         if (commonlength != 0) {
                             thisDiff = pointer.next();
-                            thisDiff.text = text_insert.slice(text_insert.length() - commonlength)
-                                    .concat(thisDiff.text);
+                            thisDiff.row = text_insert.slice(text_insert.length() - commonlength)
+                                    .concat(thisDiff.row);
                             text_insert.delete(text_insert.length() - commonlength);
                             text_delete.delete(text_delete.length() - commonlength);
                             pointer.previous();
@@ -456,7 +455,7 @@ public class ChangeList<cell_t>
                     thisDiff = pointer.hasNext() ? pointer.next() : null;
                 } else if (prevEqual != null) {
                     // Merge this equality with the previous one.
-                    prevEqual.text = prevEqual.text.concat(thisDiff.text);
+                    prevEqual.row = prevEqual.row.concat(thisDiff.row);
                     pointer.remove();
                     thisDiff = pointer.previous();
                     pointer.next(); // Forward direction
@@ -470,7 +469,7 @@ public class ChangeList<cell_t>
             }
             thisDiff = pointer.hasNext() ? pointer.next() : null;
         }
-        if (this.getLast().text.length() == 0) {
+        if (this.getLast().row.length() == 0) {
             this.removeLast(); // Remove the dummy entry at the end.
         }
 
@@ -489,11 +488,11 @@ public class ChangeList<cell_t>
         while (nextDiff != null) {
             if (prevDiff.operation == Operation.EQUAL && nextDiff.operation == Operation.EQUAL) {
                 // This is a single edit surrounded by equalities.
-                if (thisDiff.text.endsWith(prevDiff.text)) {
+                if (thisDiff.row.endsWith(prevDiff.row)) {
                     // Shift the edit over the previous equality.
-                    thisDiff.text = prevDiff.text
-                            .concat(thisDiff.text.slice(0, thisDiff.text.length() - prevDiff.text.length()));
-                    nextDiff.text = prevDiff.text.concat(nextDiff.text);
+                    thisDiff.row = prevDiff.row
+                            .concat(thisDiff.row.slice(0, thisDiff.row.length() - prevDiff.row.length()));
+                    nextDiff.row = prevDiff.row.concat(nextDiff.row);
                     pointer.previous(); // Walk past nextDiff.
                     pointer.previous(); // Walk past thisDiff.
                     pointer.previous(); // Walk past prevDiff.
@@ -502,10 +501,10 @@ public class ChangeList<cell_t>
                     thisDiff = pointer.next(); // Walk past nextDiff.
                     nextDiff = pointer.hasNext() ? pointer.next() : null;
                     changes = true;
-                } else if (thisDiff.text.startsWith(nextDiff.text)) {
+                } else if (thisDiff.row.startsWith(nextDiff.row)) {
                     // Shift the edit over the next equality.
-                    prevDiff.text = prevDiff.text.concat(nextDiff.text);
-                    thisDiff.text = thisDiff.text.slice(nextDiff.text.length()).concat(nextDiff.text);
+                    prevDiff.row = prevDiff.row.concat(nextDiff.row);
+                    thisDiff.row = thisDiff.row.slice(nextDiff.row.length()).concat(nextDiff.row);
                     pointer.remove(); // Delete nextDiff.
                     nextDiff = pointer.hasNext() ? pointer.next() : null;
                     changes = true;
@@ -540,11 +539,11 @@ public class ChangeList<cell_t>
         for (RowChangement<cell_t> aDiff : this) {
             if (aDiff.operation != Operation.INSERT) {
                 // Equality or deletion.
-                chars1 += aDiff.text.length();
+                chars1 += aDiff.row.length();
             }
             if (aDiff.operation != Operation.DELETE) {
                 // Equality or insertion.
-                chars2 += aDiff.text.length();
+                chars2 += aDiff.row.length();
             }
             if (chars1 > loc) {
                 // Overshot the location.
@@ -596,14 +595,14 @@ public class ChangeList<cell_t>
      *            List of Diff objects.
      * @return Source text.
      */
-    public IRow<cell_t> text1() {
-        MutableRow<cell_t> text = new MutableRow<cell_t>();
+    public IRow<cell_t> restoreRow1() {
+        MutableRow<cell_t> concat = new MutableRow<cell_t>();
         for (RowChangement<cell_t> aDiff : this) {
             if (aDiff.operation != Operation.INSERT) {
-                text.append(aDiff.text);
+                concat.append(aDiff.row);
             }
         }
-        return text;
+        return concat;
     }
 
     /**
@@ -613,14 +612,14 @@ public class ChangeList<cell_t>
      *            List of Diff objects.
      * @return Destination text.
      */
-    public IRow<cell_t> text2() {
-        MutableRow<cell_t> text = new MutableRow<cell_t>();
+    public IRow<cell_t> restoreRow2() {
+        MutableRow<cell_t> concat = new MutableRow<cell_t>();
         for (RowChangement<cell_t> aDiff : this) {
             if (aDiff.operation != Operation.DELETE) {
-                text.append(aDiff.text);
+                concat.append(aDiff.row);
             }
         }
-        return text;
+        return concat;
     }
 
     /**
@@ -637,10 +636,10 @@ public class ChangeList<cell_t>
         for (RowChangement<cell_t> aDiff : this) {
             switch (aDiff.operation) {
             case INSERT:
-                insertions += aDiff.text.length();
+                insertions += aDiff.row.length();
                 break;
             case DELETE:
-                deletions += aDiff.text.length();
+                deletions += aDiff.row.length();
                 break;
             case EQUAL:
                 // A deletion and an insertion is one substitution.
@@ -664,31 +663,24 @@ public class ChangeList<cell_t>
      * @return Delta text.
      */
     public String toDelta() {
-        StringBuilder text = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         for (RowChangement<cell_t> aDiff : this) {
             switch (aDiff.operation) {
             case INSERT:
-                try {
-                    text.append("+").append(URLEncoder.encode(aDiff.getTextAsString(), "UTF-8").replace('+', ' '))
-                            .append("\t");
-                } catch (UnsupportedEncodingException e) {
-                    // Not likely on modern system.
-                    throw new Error("This system does not support UTF-8.", e);
-                }
+                sb.append("+").append(JsCompat.encodeUri(aDiff.getTextAsString())).append("\t");
                 break;
             case DELETE:
-                text.append("-").append(aDiff.text.length()).append("\t");
+                sb.append("-").append(aDiff.row.length()).append("\t");
                 break;
             case EQUAL:
-                text.append("=").append(aDiff.text.length()).append("\t");
+                sb.append("=").append(aDiff.row.length()).append("\t");
                 break;
             }
         }
-        String delta = text.toString();
+        String delta = sb.toString();
         if (delta.length() != 0) {
             // Strip off trailing tab character.
             delta = delta.substring(0, delta.length() - 1);
-            delta = UriUtils.unescapeForEncodeUriCompatability(delta);
         }
         return delta;
     }
@@ -805,7 +797,7 @@ public class ChangeList<cell_t>
      */
     public PatchList<cell_t> createPatch() {
         // No origin string provided, compute our own.
-        IRow<cell_t> row1 = text1();
+        IRow<cell_t> row1 = restoreRow1();
         return patch_make(row1, this);
     }
 
@@ -846,26 +838,26 @@ public class ChangeList<cell_t>
             switch (aDiff.operation) {
             case INSERT:
                 patch.diffs.add(aDiff);
-                patch.length2 += aDiff.text.length();
-                postpatch_text = postpatch_text.slice(0, char_count2).concat(aDiff.text)
+                patch.length2 += aDiff.row.length();
+                postpatch_text = postpatch_text.slice(0, char_count2).concat(aDiff.row)
                         .concat(postpatch_text.slice(char_count2));
                 break;
             case DELETE:
-                patch.length1 += aDiff.text.length();
+                patch.length1 += aDiff.row.length();
                 patch.diffs.add(aDiff);
                 postpatch_text = postpatch_text.slice(0, char_count2)
-                        .concat(postpatch_text.slice(char_count2 + aDiff.text.length()));
+                        .concat(postpatch_text.slice(char_count2 + aDiff.row.length()));
                 break;
             case EQUAL:
-                if (aDiff.text.length() <= 2 * config.Patch_Margin && !patch.diffs.isEmpty()
+                if (aDiff.row.length() <= 2 * config.Patch_Margin && !patch.diffs.isEmpty()
                         && aDiff != diffs.getLast()) {
                     // Small equality inside a patch.
                     patch.diffs.add(aDiff);
-                    patch.length1 += aDiff.text.length();
-                    patch.length2 += aDiff.text.length();
+                    patch.length1 += aDiff.row.length();
+                    patch.length2 += aDiff.row.length();
                 }
 
-                if (aDiff.text.length() >= 2 * config.Patch_Margin && !patch.diffs.isEmpty()) {
+                if (aDiff.row.length() >= 2 * config.Patch_Margin && !patch.diffs.isEmpty()) {
                     // Time for a new patch.
                     if (!patch.diffs.isEmpty()) {
                         patch.addContext(prepatch_text);
@@ -884,10 +876,10 @@ public class ChangeList<cell_t>
 
             // Update the current character count.
             if (aDiff.operation != Operation.INSERT) {
-                char_count1 += aDiff.text.length();
+                char_count1 += aDiff.row.length();
             }
             if (aDiff.operation != Operation.DELETE) {
-                char_count2 += aDiff.text.length();
+                char_count2 += aDiff.row.length();
             }
         }
         // Pick up the leftover patch if not empty.

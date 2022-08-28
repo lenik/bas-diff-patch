@@ -15,7 +15,7 @@ public class RowChangement<cell_t> {
     /**
      * The text associated with this diff operation.
      */
-    public IRow<cell_t> text;
+    public IRow<cell_t> row;
 
     public boolean atom;
 
@@ -24,25 +24,25 @@ public class RowChangement<cell_t> {
      *
      * @param operation
      *            One of INSERT, DELETE or EQUAL.
-     * @param text
+     * @param row
      *            The text being applied.
      */
-    public RowChangement(Operation operation, IRow<cell_t> text) {
-        this(operation, text, false);
+    public RowChangement(Operation operation, IRow<cell_t> row) {
+        this(operation, row, false);
     }
 
-    public RowChangement(Operation operation, IRow<cell_t> text, boolean atom) {
+    public RowChangement(Operation operation, IRow<cell_t> row, boolean atom) {
         // Construct a diff with the specified operation and text.
         this.operation = operation;
-        this.text = text;
+        this.row = row;
         this.atom = atom;
     }
 
     public String getTextAsString() {
-        int n = text.length();
+        int n = row.length();
         StringBuilder buf = new StringBuilder(n * 100);
         for (int i = 0; i < n; i++) {
-            cell_t line = text.cellAt(i);
+            cell_t line = row.cellAt(i);
             if (atom)
                 buf.append((char) ((Integer) line).intValue());
             else
@@ -71,7 +71,7 @@ public class RowChangement<cell_t> {
     public int hashCode() {
         final int prime = 31;
         int result = (operation == null) ? 0 : operation.hashCode();
-        result += prime * ((text == null) ? 0 : text.hashCode());
+        result += prime * ((row == null) ? 0 : row.hashCode());
         return result;
     }
 
@@ -97,11 +97,11 @@ public class RowChangement<cell_t> {
         if (operation != other.operation) {
             return false;
         }
-        if (text == null) {
-            if (other.text != null) {
+        if (row == null) {
+            if (other.row != null) {
                 return false;
             }
-        } else if (!text.equals(other.text)) {
+        } else if (!row.equals(other.row)) {
             return false;
         }
         return true;

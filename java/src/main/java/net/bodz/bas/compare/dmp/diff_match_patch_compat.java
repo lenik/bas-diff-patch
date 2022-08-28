@@ -1,7 +1,5 @@
 package net.bodz.bas.compare.dmp;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -133,7 +131,7 @@ public class diff_match_patch_compat {
     protected _LinesToCharsResult diff_linesToChars(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        LinesToCharsResult<Character> result = diff.packer.linesToChars(text1, text2);
+        LinesToCharsResult<Character> result = diff.packer.pack(text1, text2);
         List<String> lineArray = new ArrayList<String>();
         for (IRow<Character> line : result.lineArray)
             lineArray.add(diff.format(line));
@@ -178,12 +176,12 @@ public class diff_match_patch_compat {
 
     public String diff_text1(List<_Diff> _diffs) {
         ChangeList<Character> diffs = convDiffsR(_diffs);
-        return diff.format(diffs.text1());
+        return diff.format(diffs.restoreRow1());
     }
 
     public String diff_text2(List<_Diff> _diffs) {
         ChangeList<Character> diffs = convDiffsR(_diffs);
-        return diff.format(diffs.text2());
+        return diff.format(diffs.restoreRow2());
     }
 
     public LinkedList<_Diff> diff_fromDelta(String _text1, String delta)
@@ -407,14 +405,9 @@ public class diff_match_patch_compat {
                     text.append(' ');
                     break;
                 }
-                try {
-                    text.append(URLEncoder.encode(aDiff.text, "UTF-8").replace('+', ' ')).append("\n");
-                } catch (UnsupportedEncodingException e) {
-                    // Not likely on modern system.
-                    throw new Error("This system does not support UTF-8.", e);
-                }
+                text.append(JsCompat.encodeUri(aDiff.text)).append("\n");
             }
-            return UriUtils.unescapeForEncodeUriCompatability(text.toString());
+            return text.toString();
         }
     }
 

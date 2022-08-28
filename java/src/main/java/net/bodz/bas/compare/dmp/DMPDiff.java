@@ -200,7 +200,7 @@ public abstract class DMPDiff<cell_t>
      */
     private <T extends cell_t> ChangeList<cell_t> diff_lineMode(IRow<T> text1, IRow<T> text2, long deadline) {
         // Scan the text on a line-by-line basis first.
-        LinesToCharsResult<T> a = packer.linesToChars(text1, text2);
+        LinesToCharsResult<T> a = packer.pack(text1, text2);
         List<IRow<T>> linearray = a.lineArray;
 
         IntCharsDiff intCharsDiff = new IntCharsDiff(config);
@@ -208,7 +208,7 @@ public abstract class DMPDiff<cell_t>
                 intCharsDiff.compareImpl(a.chars1, a.chars2, false, deadline);
 
         // Convert the diff back to original text.
-        ChangeList<cell_t> diffs = packer.charsToLines(atom_diffs, linearray);
+        ChangeList<cell_t> diffs = packer.unpack(atom_diffs, linearray);
         // Eliminate freak matches (e.g. blank lines)
         diffs.cleanupSemantic();
 
@@ -225,11 +225,11 @@ public abstract class DMPDiff<cell_t>
             switch (thisDiff.operation) {
             case INSERT:
                 count_insert++;
-                text_insert.append(thisDiff.text);
+                text_insert.append(thisDiff.row);
                 break;
             case DELETE:
                 count_delete++;
-                text_delete.append(thisDiff.text);
+                text_delete.append(thisDiff.row);
                 break;
             case EQUAL:
                 // Upon reaching an equality, check for prior redundancies.

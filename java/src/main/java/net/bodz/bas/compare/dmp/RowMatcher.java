@@ -16,7 +16,7 @@ public class RowMatcher<cell_t> {
     /**
      * Locate the best instance of 'pattern' in 'text' near 'loc'. Returns -1 if no match found.
      *
-     * @param text
+     * @param row
      *            The text to search.
      * @param pattern
      *            The pattern to search for.
@@ -24,25 +24,25 @@ public class RowMatcher<cell_t> {
      *            The location to search around.
      * @return Best match index or -1.
      */
-    public <T extends cell_t> int search(IRow<T> text, IRow<T> pattern, int loc) {
+    public <T extends cell_t> int search(IRow<T> row, IRow<T> pattern, int loc) {
         // Check for null inputs.
-        if (text == null || pattern == null) {
+        if (row == null || pattern == null) {
             throw new IllegalArgumentException("Null inputs. (match_main)");
         }
 
-        loc = Math.max(0, Math.min(loc, text.length()));
-        if (text.equals(pattern)) {
+        loc = Math.max(0, Math.min(loc, row.length()));
+        if (row.equals(pattern)) {
             // Shortcut (potentially not guaranteed by the algorithm)
             return 0;
-        } else if (text.length() == 0) {
+        } else if (row.length() == 0) {
             // Nothing to match.
             return -1;
-        } else if (loc + pattern.length() <= text.length() && text.slice(loc, loc + pattern.length()).equals(pattern)) {
+        } else if (loc + pattern.length() <= row.length() && row.slice(loc, loc + pattern.length()).equals(pattern)) {
             // Perfect match at the perfect spot! (Includes case of null pattern)
             return loc;
         } else {
             // Do a fuzzy compare.
-            return bitap(text, pattern, loc);
+            return bitap(row, pattern, loc);
         }
     }
 
@@ -50,7 +50,7 @@ public class RowMatcher<cell_t> {
      * Locate the best instance of 'pattern' in 'text' near 'loc' using the Bitap algorithm. Returns
      * -1 if no match found.
      *
-     * @param text
+     * @param row
      *            The text to search.
      * @param pattern
      *            The pattern to search for.
@@ -58,7 +58,7 @@ public class RowMatcher<cell_t> {
      *            The location to search around.
      * @return Best match index or -1.
      */
-    <T extends cell_t> int bitap(IRow<T> text, IRow<T> pattern, int loc) {
+    <T extends cell_t> int bitap(IRow<T> row, IRow<T> pattern, int loc) {
         assert (config.Match_MaxBits == 0
                 || pattern.length() <= config.Match_MaxBits) : "Pattern too long for this application.";
 
@@ -68,11 +68,11 @@ public class RowMatcher<cell_t> {
         // Highest score beyond which we give up.
         double score_threshold = config.Match_Threshold;
         // Is there a nearby exact match? (speedup)
-        int best_loc = text.indexOf(pattern, loc);
+        int best_loc = row.indexOf(pattern, loc);
         if (best_loc != -1) {
             score_threshold = Math.min(bitapScore(0, best_loc, loc, pattern), score_threshold);
             // What about in the other direction? (speedup)
-            best_loc = text.lastIndexOf(pattern, loc + pattern.length());
+            best_loc = row.lastIndexOf(pattern, loc + pattern.length());
             if (best_loc != -1) {
                 score_threshold = Math.min(bitapScore(0, best_loc, loc, pattern), score_threshold);
             }
@@ -83,7 +83,7 @@ public class RowMatcher<cell_t> {
         best_loc = -1;
 
         int bin_min, bin_mid;
-        int bin_max = pattern.length() + text.length();
+        int bin_max = pattern.length() + row.length();
         // Empty initialization added to appease Java compiler.
         int[] last_rd = new int[0];
         for (int d = 0; d < pattern.length(); d++) {
@@ -103,17 +103,17 @@ public class RowMatcher<cell_t> {
             // Use the result from this iteration as the maximum for the next.
             bin_max = bin_mid;
             int start = Math.max(1, loc - bin_mid + 1);
-            int finish = Math.min(loc + bin_mid, text.length()) + pattern.length();
+            int finish = Math.min(loc + bin_mid, row.length()) + pattern.length();
 
             int[] rd = new int[finish + 2];
             rd[finish + 1] = (1 << d) - 1;
             for (int j = finish; j >= start; j--) {
                 int charMatch;
-                if (text.length() <= j - 1 || !s.containsKey(text.cellAt(j - 1))) {
+                if (row.length() <= j - 1 || !s.containsKey(row.cellAt(j - 1))) {
                     // Out of range.
                     charMatch = 0;
                 } else {
-                    charMatch = s.get(text.cellAt(j - 1));
+                    charMatch = s.get(row.cellAt(j - 1));
                 }
                 if (d == 0) {
                     // First pass: exact match.
