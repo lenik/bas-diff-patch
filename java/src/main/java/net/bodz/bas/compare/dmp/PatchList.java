@@ -70,7 +70,11 @@ public class PatchList<cell_t>
         PatchList<cell_t> patches = this.deepCopy();
 
         IRow<cell_t> nullPadding = patches.addPadding();
-        row = nullPadding.concat(row).concat(nullPadding);
+        MutableRow<cell_t> buf = new MutableRow<cell_t>(row.length() * 3 / 2);
+        buf.append(nullPadding);
+        buf.append(row);
+        buf.append(nullPadding);
+
         patches.splitMax();
 
         int x = 0;
@@ -88,9 +92,9 @@ public class PatchList<cell_t>
             if (text1.length() > config.Match_MaxBits) {
                 // patch_splitMax will only provide an oversized pattern in the case of
                 // a monster delete.
-                start_loc = matcher.search(row, text1.slice(0, config.Match_MaxBits), expected_loc);
+                start_loc = matcher.search(buf, text1.slice(0, config.Match_MaxBits), expected_loc);
                 if (start_loc != -1) {
-                    end_loc = matcher.search(row, text1.slice(text1.length() - config.Match_MaxBits),
+                    end_loc = matcher.search(buf, text1.slice(text1.length() - config.Match_MaxBits),
                             expected_loc + text1.length() - config.Match_MaxBits);
                     if (end_loc == -1 || start_loc >= end_loc) {
                         // Can't find valid trailing context. Drop this patch.
@@ -98,7 +102,7 @@ public class PatchList<cell_t>
                     }
                 }
             } else {
-                start_loc = matcher.search(row, text1, expected_loc);
+                start_loc = matcher.search(buf, text1, expected_loc);
             }
             if (start_loc == -1) {
                 // No match found. :(
@@ -111,14 +115,14 @@ public class PatchList<cell_t>
                 delta = start_loc - expected_loc;
                 IRow<cell_t> text2;
                 if (end_loc == -1) {
-                    text2 = row.slice(start_loc, Math.min(start_loc + text1.length(), row.length()));
+                    text2 = buf.slice(start_loc, Math.min(start_loc + text1.length(), buf.length()));
                 } else {
-                    text2 = row.slice(start_loc, Math.min(end_loc + config.Match_MaxBits, row.length()));
+                    text2 = buf.slice(start_loc, Math.min(end_loc + config.Match_MaxBits, buf.length()));
                 }
                 if (text1.equals(text2)) {
                     // Perfect match, just shove the replacement text in.
-                    row = row.slice(0, start_loc).concat(aPatch.diffs.restoreRow2())
-                            .concat(row.slice(start_loc + text1.length()));
+                    buf = buf.slice(0, start_loc).concat(aPatch.diffs.restoreRow2())
+                            .concat(buf.slice(start_loc + text1.length()));
                 } else {
                     // Imperfect match. Run a diff to get a framework of equivalent
                     // indices.
@@ -135,12 +139,13 @@ public class PatchList<cell_t>
                                 int index2 = diffs.xIndex(index1);
                                 if (aDiff.operation == Operation.INSERT) {
                                     // Insertion
-                                    row = row.slice(0, start_loc + index2).concat(aDiff.row)
-                                            .concat(row.slice(start_loc + index2));
+                                    ＸＸＸ
+                                    buf = buf.slice(0, start_loc + index2).concat(aDiff.row)
+                                            .concat(buf.slice(start_loc + index2));
                                 } else if (aDiff.operation == Operation.DELETE) {
                                     // Deletion
-                                    row = row.slice(0, start_loc + index2)
-                                            .concat(row.slice(start_loc + diffs.xIndex(index1 + aDiff.row.length())));
+                                    buf = buf.slice(0, start_loc + index2)
+                                            .concat(buf.slice(start_loc + diffs.xIndex(index1 + aDiff.row.length())));
                                 }
                             }
                             if (aDiff.operation != Operation.DELETE) {
@@ -153,8 +158,8 @@ public class PatchList<cell_t>
             x++;
         }
         // Strip the padding off.
-        row = row.slice(nullPadding.length(), row.length() - nullPadding.length());
-        return new PatchApplyResult<cell_t>(row, results);
+        buf = buf.slice(nullPadding.length(), buf.length() - nullPadding.length());
+        return new PatchApplyResult<cell_t>(buf, results);
     }
 
     /**

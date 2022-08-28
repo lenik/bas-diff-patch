@@ -106,19 +106,41 @@ public class MutableRow<cell_t>
     }
 
     @Override
-    public synchronized MutableRow<cell_t> append(cell_t ch) {
+    public synchronized MutableRow<cell_t> append(cell_t cell) {
         beforeWrite();
-        list.add(ch);
+        list.add(cell);
         return this;
     }
 
     @Override
-    public MutableRow<cell_t> append(IRow<? extends cell_t> o) {
+    public MutableRow<cell_t> append(IRow<? extends cell_t> row) {
         beforeWrite();
-        int n = o.length();
+        int n = row.length();
         for (int i = 0; i < n; i++)
-            list.add(o.cellAt(i));
+            list.add(row.cellAt(i));
         return this;
+    }
+
+    @Override
+    public void insert(int index, cell_t cell) {
+        index = wrapBegin(index);
+        beforeWrite();
+        list.add(index, cell);
+    }
+
+    @Override
+    public void insert(int index, IRow<? extends cell_t> row) {
+        index = wrapBegin(index);
+        beforeWrite();
+        int n = row.length();
+        for (int i = 0; i < n; i++)
+            list.add(index++, row.cellAt(i));
+    }
+
+    @Override
+    public void replace(int begin, int end, IRow<? extends cell_t> row) {
+        delete(begin, end);
+        insert(begin, row);
     }
 
     @Override
@@ -161,8 +183,14 @@ public class MutableRow<cell_t>
         return slice;
     }
 
+    @Override
     public MutableRow<cell_t> copy() {
-        List<cell_t> list = new ArrayList<cell_t>(this.list);
+        return copy(list.size());
+    }
+
+    public MutableRow<cell_t> copy(int capacity) {
+        List<cell_t> list = new ArrayList<cell_t>(capacity);
+        list.addAll(this.list);
         return new MutableRow<cell_t>(list, true);
     }
 

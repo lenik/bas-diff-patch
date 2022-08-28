@@ -46,4 +46,12 @@ public interface IRow<cell_t>
 
     boolean endsWith(IRow<? extends cell_t> pattern);
 
+    IRow<cell_t> lock();
+
+    IMutableRow<cell_t> unlock();
+
+    IMutableRow<cell_t> copy();
+
+    <T> IMutableRow<T> copy(Function<cell_t, T> function);
+
 }

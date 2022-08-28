@@ -227,6 +227,37 @@ public abstract class AbstractRow<cell_t>
     }
 
     @Override
+    public IRow<cell_t> lock() {
+        return this;
+    }
+
+    @Override
+    public IMutableRow<cell_t> unlock() {
+        return copy();
+    }
+
+    @Override
+    public IMutableRow<cell_t> copy() {
+        MutableRow<cell_t> copy = new MutableRow<cell_t>(length());
+        copy.append(this);
+        return copy;
+    }
+
+    @Override
+    public <T> IMutableRow<T> copy(Function<cell_t, T> function) {
+        MutableRow<T> copy = new MutableRow<T>(length());
+        for (cell_t cell : this)
+            copy.append(function.apply(cell));
+        return copy;
+    }
+
+    public static <cell_t, T extends cell_t> IMutableRow<cell_t> copy(IRow<T> row) {
+        MutableRow<cell_t> copy = new MutableRow<cell_t>(row.length());
+        copy.append(row);
+        return copy;
+    }
+
+    @Override
     public String toString() {
         int n = length();
         StringBuilder sb = new StringBuilder(n);

@@ -231,7 +231,7 @@ public class diff_match_patch_compat {
     public Object[] patch_apply(LinkedList<_Patch> patches, String _text) {
         CharsView text = convText(_text);
         PatchApplyResult<Character> result = convPatchesR(patches).apply(text);
-        return new Object[] { diff.format(result.text), result.results };
+        return new Object[] { diff.format(result.row), result.results };
     }
 
     public String patch_addPadding(LinkedList<_Patch> _patches) {

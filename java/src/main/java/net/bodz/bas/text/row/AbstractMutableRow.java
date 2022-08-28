@@ -37,4 +37,20 @@ public abstract class AbstractMutableRow<cell_t>
         return this;
     }
 
+    @Override
+    public void insert(int index, IRow<? extends cell_t> row) {
+        for (cell_t cell : row)
+            insert(index++, cell);
+    }
+
+    @Override
+    public IRow<cell_t> lock() {
+        return copy();
+    }
+
+    @Override
+    public IMutableRow<cell_t> unlock() {
+        return this;
+    }
+
 }
