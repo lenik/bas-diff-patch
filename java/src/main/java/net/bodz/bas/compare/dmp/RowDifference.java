@@ -15,19 +15,19 @@ public class RowDifference<cell_t>
     /**
      * The text associated with this diff type.
      */
-    public final IRow<cell_t> row;
+    public final IRow<cell_t> delta;
 
     /**
      * Constructor. Initializes the diff with the provided values.
      *
      * @param type
      *            One of INSERT, DELETE or EQUAL.
-     * @param row
+     * @param delta
      *            The text being applied.
      */
-    public RowDifference(DifferenceType type, IRow<cell_t> row) {
+    public RowDifference(DifferenceType type, IRow<cell_t> delta) {
         this.type = type;
-        this.row = row;
+        this.delta = delta;
     }
 
     @Override
@@ -36,13 +36,13 @@ public class RowDifference<cell_t>
     }
 
     @Override
-    public IRow<cell_t> getRow() {
-        return row;
+    public IRow<cell_t> getDelta() {
+        return delta;
     }
 
-    public static <cell_t, T extends cell_t> RowDifference<cell_t> copy(IRowDifference<T> diff) {
-        IMutableRow<cell_t> rowCopy = AbstractRow.copy(diff.getRow());
-        return new RowDifference<cell_t>(diff.getDifferenceType(), rowCopy);
+    public static <cell_t, T extends cell_t> RowDifference<cell_t> copy(IRowDifference<T> o) {
+        IMutableRow<cell_t> deltaCopy = AbstractRow.copy(o.getDelta());
+        return new RowDifference<cell_t>(o.getDifferenceType(), deltaCopy);
     }
 
 }

@@ -44,9 +44,9 @@ public class Patch<cell_t> {
         // Look for the first and last matches of pattern in text. If two different
         // matches are found, increase the pattern length.
         while (true) {
-            int p1 = text.indexOf(pattern);
-            int p2 = text.lastIndexOf(pattern);
-            if (p1 == p2)
+            int pFirst = text.indexOf(pattern);
+            int pLast = text.lastIndexOf(pattern);
+            if (pFirst == pLast)
                 break;
             if (pattern.length() >= config.Match_MaxBits - config.Patch_Margin - config.Patch_Margin)
                 break;

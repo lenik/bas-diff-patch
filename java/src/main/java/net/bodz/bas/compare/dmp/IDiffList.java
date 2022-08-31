@@ -34,8 +34,8 @@ public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
     <T extends cell_t> void append(IRowDifference<T> diff);
 
     /**
-     * loc is a location in row1, compute and return the equivalent location in row2. e.g. "The
-     * cat" vs "The big cat", 1->1, 5->8
+     * loc is a location in row1, compute and return the equivalent location in row2. e.g. "The cat"
+     * vs "The big cat", 1->1, 5->8
      *
      * @param diffs
      *            List of Diff objects.
@@ -82,9 +82,9 @@ public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
     int levenshtein();
 
     /**
-     * Crush the diff into an encoded string which describes the types required to transform
-     * row1 into row2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations
-     * are tab-separated. Inserted text is escaped using %xx notation.
+     * Crush the diff into an encoded string which describes the types required to transform row1
+     * into row2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations are
+     * tab-separated. Inserted text is escaped using %xx notation.
      *
      * @param diffs
      *            List of Diff objects.
@@ -105,4 +105,5 @@ public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
      */
     void readDelta(IRow<cell_t> row1, String delta)
             throws IllegalArgumentException;
+
 }

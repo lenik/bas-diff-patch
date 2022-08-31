@@ -59,13 +59,13 @@ public class EditList<cell_t>
                 length_deletions1 = length_deletions2;
                 length_insertions2 = 0;
                 length_deletions2 = 0;
-                lastEquality = thisDiff.row;
+                lastEquality = thisDiff.delta;
             } else {
                 // An insertion or deletion.
                 if (thisDiff.type == DifferenceType.INSERTION) {
-                    length_insertions2 += thisDiff.row.length();
+                    length_insertions2 += thisDiff.delta.length();
                 } else {
-                    length_deletions2 += thisDiff.row.length();
+                    length_deletions2 += thisDiff.delta.length();
                 }
                 // Eliminate an equality that is smaller or equal to the edits on both sides of it.
                 if (lastEquality != null && (lastEquality.length() <= Math.max(length_insertions1, length_deletions1))
@@ -134,8 +134,8 @@ public class EditList<cell_t>
         }
         while (thisDiff != null) {
             if (prevDiff.type == DifferenceType.REMOVAL && thisDiff.type == DifferenceType.INSERTION) {
-                IMutableRow<cell_t> deletion = prevDiff.row;
-                IMutableRow<cell_t> insertion = thisDiff.row;
+                IMutableRow<cell_t> deletion = prevDiff.delta;
+                IMutableRow<cell_t> insertion = thisDiff.delta;
                 int overlap_length1 = RowUtils.commonOverlap(deletion, insertion);
                 int overlap_length2 = RowUtils.commonOverlap(insertion, deletion);
                 if (overlap_length1 >= overlap_length2) {
@@ -143,8 +143,8 @@ public class EditList<cell_t>
                         // Overlap found. Insert an equality and trim the surrounding edits.
                         pointer.previous();
                         pointer.add(new RowEdit<cell_t>(DifferenceType.MATCH, insertion.slice(0, overlap_length1)));
-                        prevDiff.row = deletion.slice(0, deletion.length() - overlap_length1);
-                        thisDiff.row = insertion.slice(overlap_length1, insertion.length());
+                        prevDiff.delta = deletion.slice(0, deletion.length() - overlap_length1);
+                        thisDiff.delta = insertion.slice(overlap_length1, insertion.length());
                         // pointer.add inserts the element before the cursor, so there is
                         // no need to step past the new element.
                     }
@@ -155,9 +155,9 @@ public class EditList<cell_t>
                         pointer.previous();
                         pointer.add(new RowEdit<cell_t>(DifferenceType.MATCH, deletion.slice(0, overlap_length2)));
                         prevDiff.type = DifferenceType.INSERTION;
-                        prevDiff.row = insertion.slice(0, insertion.length() - overlap_length2);
+                        prevDiff.delta = insertion.slice(0, insertion.length() - overlap_length2);
                         thisDiff.type = DifferenceType.REMOVAL;
-                        thisDiff.row = deletion.slice(overlap_length2, deletion.length());
+                        thisDiff.delta = deletion.slice(overlap_length2, deletion.length());
                         // pointer.add inserts the element before the cursor, so there is
                         // no need to step past the new element.
                     }
@@ -191,9 +191,9 @@ public class EditList<cell_t>
         while (nextDiff != null) {
             if (prevDiff.type == DifferenceType.MATCH && nextDiff.type == DifferenceType.MATCH) {
                 // This is a single edit surrounded by equalities.
-                equality1 = prevDiff.row;
-                edit = thisDiff.row;
-                equality2 = nextDiff.row;
+                equality1 = prevDiff.delta;
+                edit = thisDiff.delta;
+                equality2 = nextDiff.delta;
 
                 // First, shift the edit as far left as possible.
                 commonOffset = RowUtils.commonSuffix(equality1, edit);
@@ -224,10 +224,10 @@ public class EditList<cell_t>
                     }
                 }
 
-                if (!prevDiff.row.equals(bestEquality1)) {
+                if (!prevDiff.delta.equals(bestEquality1)) {
                     // We have an improvement, save it back to the diff.
                     if (bestEquality1.length() != 0) {
-                        prevDiff.row = bestEquality1;
+                        prevDiff.delta = bestEquality1;
                     } else {
                         pointer.previous(); // Walk past nextDiff.
                         pointer.previous(); // Walk past thisDiff.
@@ -236,9 +236,9 @@ public class EditList<cell_t>
                         pointer.next(); // Walk past thisDiff.
                         pointer.next(); // Walk past nextDiff.
                     }
-                    thisDiff.row = bestEdit;
+                    thisDiff.delta = bestEdit;
                     if (bestEquality2.length() != 0) {
-                        nextDiff.row = bestEquality2;
+                        nextDiff.delta = bestEquality2;
                     } else {
                         pointer.remove(); // Delete nextDiff.
                         nextDiff = thisDiff;
@@ -281,12 +281,12 @@ public class EditList<cell_t>
         while (thisDiff != null) {
             if (thisDiff.type == DifferenceType.MATCH) {
                 // Equality found.
-                if (thisDiff.row.length() < config.Diff_EditCost && (post_ins || post_del)) {
+                if (thisDiff.delta.length() < config.Diff_EditCost && (post_ins || post_del)) {
                     // Candidate found.
                     equalities.push(thisDiff);
                     pre_ins = post_ins;
                     pre_del = post_del;
-                    lastEquality = thisDiff.row;
+                    lastEquality = thisDiff.delta;
                 } else {
                     // Not a candidate, and can never become one.
                     equalities.clear();
@@ -382,12 +382,12 @@ public class EditList<cell_t>
             switch (thisDiff.type) {
             case INSERTION:
                 count_insert++;
-                text_insert.append(thisDiff.row);
+                text_insert.append(thisDiff.delta);
                 prevEqual = null;
                 break;
             case REMOVAL:
                 count_delete++;
-                text_delete.append(thisDiff.row);
+                text_delete.append(thisDiff.delta);
                 prevEqual = null;
                 break;
             case MATCH:
@@ -410,7 +410,7 @@ public class EditList<cell_t>
                             if (pointer.hasPrevious()) {
                                 thisDiff = pointer.previous();
                                 assert thisDiff.type == DifferenceType.MATCH : "Previous diff should have been an equality.";
-                                thisDiff.row = thisDiff.row.concat(text_insert.slice(0, commonlength));
+                                thisDiff.delta = thisDiff.delta.concat(text_insert.slice(0, commonlength));
                                 pointer.next();
                             } else {
                                 pointer.add(
@@ -423,7 +423,7 @@ public class EditList<cell_t>
                         commonlength = RowUtils.commonSuffix(text_insert, text_delete);
                         if (commonlength != 0) {
                             thisDiff = pointer.next();
-                            thisDiff.row = text_insert.slice(text_insert.length() - commonlength).concat(thisDiff.row);
+                            thisDiff.delta = text_insert.slice(text_insert.length() - commonlength).concat(thisDiff.delta);
                             text_insert.delete(-commonlength);
                             text_delete.delete(-commonlength);
                             pointer.previous();
@@ -440,7 +440,7 @@ public class EditList<cell_t>
                     thisDiff = pointer.hasNext() ? pointer.next() : null;
                 } else if (prevEqual != null) {
                     // Merge this equality with the previous one.
-                    prevEqual.row = prevEqual.row.concat(thisDiff.row);
+                    prevEqual.delta = prevEqual.delta.concat(thisDiff.delta);
                     pointer.remove();
                     thisDiff = pointer.previous();
                     pointer.next(); // Forward direction
@@ -454,7 +454,7 @@ public class EditList<cell_t>
             }
             thisDiff = pointer.hasNext() ? pointer.next() : null;
         }
-        if (this.getLast().row.length() == 0) {
+        if (this.getLast().delta.length() == 0) {
             this.removeLast(); // Remove the dummy entry at the end.
         }
 
@@ -473,11 +473,11 @@ public class EditList<cell_t>
         while (nextDiff != null) {
             if (prevDiff.type == DifferenceType.MATCH && nextDiff.type == DifferenceType.MATCH) {
                 // This is a single edit surrounded by equalities.
-                if (thisDiff.row.endsWith(prevDiff.row)) {
+                if (thisDiff.delta.endsWith(prevDiff.delta)) {
                     // Shift the edit over the previous equality.
-                    thisDiff.row = prevDiff.row
-                            .concat(thisDiff.row.slice(0, thisDiff.row.length() - prevDiff.row.length()));
-                    nextDiff.row = prevDiff.row.concat(nextDiff.row);
+                    thisDiff.delta = prevDiff.delta
+                            .concat(thisDiff.delta.slice(0, thisDiff.delta.length() - prevDiff.delta.length()));
+                    nextDiff.delta = prevDiff.delta.concat(nextDiff.delta);
                     pointer.previous(); // Walk past nextDiff.
                     pointer.previous(); // Walk past thisDiff.
                     pointer.previous(); // Walk past prevDiff.
@@ -486,10 +486,10 @@ public class EditList<cell_t>
                     thisDiff = pointer.next(); // Walk past nextDiff.
                     nextDiff = pointer.hasNext() ? pointer.next() : null;
                     changes = true;
-                } else if (thisDiff.row.startsWith(nextDiff.row)) {
+                } else if (thisDiff.delta.startsWith(nextDiff.delta)) {
                     // Shift the edit over the next equality.
-                    prevDiff.row = prevDiff.row.concat(nextDiff.row);
-                    thisDiff.row = thisDiff.row.slice(nextDiff.row.length()).concat(nextDiff.row);
+                    prevDiff.delta = prevDiff.delta.concat(nextDiff.delta);
+                    thisDiff.delta = thisDiff.delta.slice(nextDiff.delta.length()).concat(nextDiff.delta);
                     pointer.remove(); // Delete nextDiff.
                     nextDiff = pointer.hasNext() ? pointer.next() : null;
                     changes = true;
@@ -606,26 +606,26 @@ public class EditList<cell_t>
             switch (aDiff.type) {
             case INSERTION:
                 patch.diffs.add(aDiff);
-                patch.length2 += aDiff.row.length();
-                postpatch_text = postpatch_text.slice(0, char_count2).concat(aDiff.row)
+                patch.length2 += aDiff.delta.length();
+                postpatch_text = postpatch_text.slice(0, char_count2).concat(aDiff.delta)
                         .concat(postpatch_text.slice(char_count2));
                 break;
             case REMOVAL:
-                patch.length1 += aDiff.row.length();
+                patch.length1 += aDiff.delta.length();
                 patch.diffs.add(aDiff);
                 postpatch_text = postpatch_text.slice(0, char_count2)
-                        .concat(postpatch_text.slice(char_count2 + aDiff.row.length()));
+                        .concat(postpatch_text.slice(char_count2 + aDiff.delta.length()));
                 break;
             case MATCH:
-                if (aDiff.row.length() <= 2 * config.Patch_Margin && !patch.diffs.isEmpty()
+                if (aDiff.delta.length() <= 2 * config.Patch_Margin && !patch.diffs.isEmpty()
                         && aDiff != diffs.getLast()) {
                     // Small equality inside a patch.
                     patch.diffs.add(aDiff);
-                    patch.length1 += aDiff.row.length();
-                    patch.length2 += aDiff.row.length();
+                    patch.length1 += aDiff.delta.length();
+                    patch.length2 += aDiff.delta.length();
                 }
 
-                if (aDiff.row.length() >= 2 * config.Patch_Margin && !patch.diffs.isEmpty()) {
+                if (aDiff.delta.length() >= 2 * config.Patch_Margin && !patch.diffs.isEmpty()) {
                     // Time for a new patch.
                     if (!patch.diffs.isEmpty()) {
                         patch.addContext(prepatch_text);
@@ -644,10 +644,10 @@ public class EditList<cell_t>
 
             // Update the current character count.
             if (aDiff.type != DifferenceType.INSERTION) {
-                char_count1 += aDiff.row.length();
+                char_count1 += aDiff.delta.length();
             }
             if (aDiff.type != DifferenceType.REMOVAL) {
-                char_count2 += aDiff.row.length();
+                char_count2 += aDiff.delta.length();
             }
         }
         // Pick up the leftover patch if not empty.

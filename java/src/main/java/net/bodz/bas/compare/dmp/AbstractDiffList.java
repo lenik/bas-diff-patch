@@ -81,8 +81,8 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
     }
 
     /**
-     * loc is a location in row1, compute and return the equivalent location in row2. e.g. "The
-     * cat" vs "The big cat", 1->1, 5->8
+     * loc is a location in row1, compute and return the equivalent location in row2. e.g. "The cat"
+     * vs "The big cat", 1->1, 5->8
      *
      * @param diffs
      *            List of Diff objects.
@@ -98,7 +98,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
         IRowDifference<cell_t> lastDiff = null;
         for (IRowDifference<cell_t> aDiff : this) {
             DifferenceType type = aDiff.getDifferenceType();
-            IRow<cell_t> row = aDiff.getRow();
+            IRow<cell_t> row = aDiff.getDelta();
             if (type != DifferenceType.INSERTION) {
                 // Equality or deletion.
                 chars1 += row.length();
@@ -161,7 +161,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
         MutableRow<cell_t> concat = new MutableRow<cell_t>();
         for (IRowDifference<cell_t> aDiff : this) {
             if (aDiff.getDifferenceType() != DifferenceType.INSERTION) {
-                concat.append(aDiff.getRow());
+                concat.append(aDiff.getDelta());
             }
         }
         return concat;
@@ -178,7 +178,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
         MutableRow<cell_t> concat = new MutableRow<cell_t>();
         for (IRowDifference<cell_t> aDiff : this) {
             if (aDiff.getDifferenceType() != DifferenceType.REMOVAL) {
-                concat.append(aDiff.getRow());
+                concat.append(aDiff.getDelta());
             }
         }
         return concat;
@@ -196,7 +196,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
         int insertions = 0;
         int deletions = 0;
         for (IRowDifference<cell_t> aDiff : this) {
-            IRow<cell_t> row = aDiff.getRow();
+            IRow<cell_t> row = aDiff.getDelta();
             switch (aDiff.getDifferenceType()) {
             case INSERTION:
                 insertions += row.length();
@@ -217,9 +217,9 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
     }
 
     /**
-     * Crush the diff into an encoded string which describes the types required to transform
-     * row1 into row2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations
-     * are tab-separated. Inserted text is escaped using %xx notation.
+     * Crush the diff into an encoded string which describes the types required to transform row1
+     * into row2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations are
+     * tab-separated. Inserted text is escaped using %xx notation.
      *
      * @param diffs
      *            List of Diff objects.
@@ -228,7 +228,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
     public final String toDelta() {
         StringBuilder sb = new StringBuilder();
         for (IRowDifference<cell_t> aDiff : this) {
-            IRow<cell_t> row = aDiff.getRow();
+            IRow<cell_t> row = aDiff.getDelta();
             switch (aDiff.getDifferenceType()) {
             case INSERTION:
                 sb.append("+").append(JsCompat.encodeUri(aDiff.getTextAsString())).append("\t");

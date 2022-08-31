@@ -20,7 +20,8 @@ public class ChangeList<cell_t>
     }
 
     @Override
-    protected RowDifference<cell_t> createDifference(DifferenceType type, IRow<cell_t> row, boolean allocated) {
+    protected RowDifference<cell_t> createDifference(DifferenceType type, IRow<cell_t> row,
+            boolean allocated) {
         return new RowDifference<cell_t>(type, row);
     }
 

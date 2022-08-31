@@ -12,8 +12,8 @@ public interface IRowEdit<cell_t>
     void setDifferenceType(DifferenceType type);
 
     @Override
-    IMutableRow<cell_t> getRow();
+    IMutableRow<cell_t> getDelta();
 
-    void setRow(IMutableRow<cell_t> row);
+    void setDelta(IMutableRow<cell_t> row);
 
 }

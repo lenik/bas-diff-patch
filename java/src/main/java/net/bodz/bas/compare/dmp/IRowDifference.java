@@ -7,7 +7,7 @@ public interface IRowDifference<cell_t> {
 
     DifferenceType getDifferenceType();
 
-    IRow<cell_t> getRow();
+    IRow<cell_t> getDelta();
 
     String getTextAsString();
 

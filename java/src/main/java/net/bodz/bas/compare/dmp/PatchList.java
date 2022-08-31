@@ -39,7 +39,7 @@ public class PatchList<cell_t>
         for (Patch<cell_t> aPatch : this) {
             Patch<cell_t> patchCopy = new Patch<cell_t>(diff);
             for (RowEdit<cell_t> aDiff : aPatch.diffs) {
-                RowEdit<cell_t> diffCopy = new RowEdit<cell_t>(aDiff.type, aDiff.row);
+                RowEdit<cell_t> diffCopy = new RowEdit<cell_t>(aDiff.type, aDiff.delta);
                 patchCopy.diffs.append(diffCopy);
             }
             patchCopy.start1 = aPatch.start1;
@@ -138,15 +138,15 @@ public class PatchList<cell_t>
                                 int index2 = diffs.xIndex(index1);
                                 if (aDiff.type == DifferenceType.INSERTION) {
                                     // Insertion
-                                    buf.insert(start_loc + index2, aDiff.row);
+                                    buf.insert(start_loc + index2, aDiff.delta);
                                 } else if (aDiff.type == DifferenceType.REMOVAL) {
                                     // Deletion
                                     buf.delete(start_loc + index2,
-                                            start_loc + diffs.xIndex(index1 + aDiff.row.length()));
+                                            start_loc + diffs.xIndex(index1 + aDiff.delta.length()));
                                 }
                             }
                             if (aDiff.type != DifferenceType.REMOVAL) {
-                                index1 += aDiff.row.length();
+                                index1 += aDiff.delta.length();
                             }
                         }
                     }
@@ -191,11 +191,11 @@ public class PatchList<cell_t>
             patch.start2 -= paddingLength; // Should be 0.
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
-        } else if (paddingLength > diffs.getFirst().row.length()) {
+        } else if (paddingLength > diffs.getFirst().delta.length()) {
             // Grow first equality.
             RowEdit<cell_t> firstDiff = diffs.getFirst();
-            int extraLength = paddingLength - firstDiff.row.length();
-            firstDiff.row = nullPadding.slice(firstDiff.row.length()).concat(firstDiff.row);
+            int extraLength = paddingLength - firstDiff.delta.length();
+            firstDiff.delta = nullPadding.slice(firstDiff.delta.length()).concat(firstDiff.delta);
             patch.start1 -= extraLength;
             patch.start2 -= extraLength;
             patch.length1 += extraLength;
@@ -210,11 +210,11 @@ public class PatchList<cell_t>
             diffs.append(new RowDifference<cell_t>(DifferenceType.MATCH, nullPadding));
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
-        } else if (paddingLength > diffs.getLast().row.length()) {
+        } else if (paddingLength > diffs.getLast().delta.length()) {
             // Grow last equality.
             RowEdit<cell_t> lastDiff = diffs.getLast();
-            int extraLength = paddingLength - lastDiff.row.length();
-            lastDiff.row = lastDiff.row.concat(nullPadding.slice(0, extraLength));
+            int extraLength = paddingLength - lastDiff.delta.length();
+            lastDiff.delta = lastDiff.delta.concat(nullPadding.slice(0, extraLength));
             patch.length1 += extraLength;
             patch.length2 += extraLength;
         }
@@ -261,7 +261,7 @@ public class PatchList<cell_t>
                 }
                 while (!bigpatch.diffs.isEmpty() && patch.length1 < patch_size - config.Patch_Margin) {
                     diff_type = bigpatch.diffs.getFirst().type;
-                    diff_text = bigpatch.diffs.getFirst().row;
+                    diff_text = bigpatch.diffs.getFirst().delta;
                     if (diff_type == DifferenceType.INSERTION) {
                         // Insertions are harmless.
                         patch.length2 += diff_text.length();
@@ -290,10 +290,10 @@ public class PatchList<cell_t>
                             empty = false;
                         }
                         patch.diffs.append(new RowDifference<cell_t>(diff_type, diff_text));
-                        if (diff_text.equals(bigpatch.diffs.getFirst().row)) {
+                        if (diff_text.equals(bigpatch.diffs.getFirst().delta)) {
                             bigpatch.diffs.removeFirst();
                         } else {
-                            bigpatch.diffs.getFirst().row = bigpatch.diffs.getFirst().row.slice(diff_text.length());
+                            bigpatch.diffs.getFirst().delta = bigpatch.diffs.getFirst().delta.slice(diff_text.length());
                         }
                     }
                 }
@@ -310,7 +310,7 @@ public class PatchList<cell_t>
                     patch.length1 += postcontext.length();
                     patch.length2 += postcontext.length();
                     if (!patch.diffs.isEmpty() && patch.diffs.getLast().type == DifferenceType.MATCH) {
-                        patch.diffs.getLast().row = patch.diffs.getLast().row.concat(postcontext);
+                        patch.diffs.getLast().delta = patch.diffs.getLast().delta.concat(postcontext);
                     } else {
                         patch.diffs.append(new RowDifference<cell_t>(DifferenceType.MATCH, postcontext));
                     }

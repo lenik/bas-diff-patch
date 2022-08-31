@@ -9,16 +9,16 @@ public abstract class AbstractRowDifference<cell_t>
 
     @Override
     public RowEdit<cell_t> copy() {
-        return new RowEdit<cell_t>(getDifferenceType(), getRow().copy());
+        return new RowEdit<cell_t>(getDifferenceType(), getDelta().copy());
     }
 
     @Override
     public <T> RowEdit<T> copy(Function<cell_t, T> function) {
-        return new RowEdit<T>(getDifferenceType(), getRow().copy(function));
+        return new RowEdit<T>(getDifferenceType(), getDelta().copy(function));
     }
 
     public String getTextAsString() {
-        IRow<cell_t> row = getRow();
+        IRow<cell_t> row = getDelta();
         int n = row.length();
         StringBuilder buf = new StringBuilder(n * 100);
         for (int i = 0; i < n; i++) {
@@ -49,7 +49,7 @@ public abstract class AbstractRowDifference<cell_t>
         final int prime = 31;
         DifferenceType type = getDifferenceType();
         int result = (type == null) ? 0 : type.hashCode();
-        IRow<cell_t> row = getRow();
+        IRow<cell_t> row = getDelta();
         result += prime * ((row == null) ? 0 : row.hashCode());
         return result;
     }
@@ -78,8 +78,8 @@ public abstract class AbstractRowDifference<cell_t>
         if (type1 != type2) {
             return false;
         }
-        IRow<cell_t> row1 = getRow();
-        IRow<?> row2 = other.getRow();
+        IRow<cell_t> row1 = getDelta();
+        IRow<?> row2 = other.getDelta();
         if (row1 == null) {
             if (row2 != null) {
                 return false;

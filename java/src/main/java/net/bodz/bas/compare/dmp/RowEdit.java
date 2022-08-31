@@ -9,11 +9,11 @@ public class RowEdit<cell_t>
             IRowEdit<cell_t> {
 
     DifferenceType type;
-    IMutableRow<cell_t> row;
+    IMutableRow<cell_t> delta;
 
-    public RowEdit(DifferenceType type, IMutableRow<cell_t> row) {
+    public RowEdit(DifferenceType type, IMutableRow<cell_t> delta) {
         this.type = type;
-        this.row = row;
+        this.delta = delta;
     }
 
     @Override
@@ -27,18 +27,18 @@ public class RowEdit<cell_t>
     }
 
     @Override
-    public IMutableRow<cell_t> getRow() {
-        return row;
+    public IMutableRow<cell_t> getDelta() {
+        return delta;
     }
 
     @Override
-    public void setRow(IMutableRow<cell_t> row) {
-        this.row = row;
+    public void setDelta(IMutableRow<cell_t> delta) {
+        this.delta = delta;
     }
 
-    public static <cell_t, T extends cell_t> RowEdit<cell_t> copy(IRowDifference<T> diff) {
-        IMutableRow<cell_t> rowCopy = AbstractRow.copy(diff.getRow());
-        return new RowEdit<cell_t>(diff.getDifferenceType(), rowCopy);
+    public static <cell_t, T extends cell_t> RowEdit<cell_t> copy(IRowDifference<T> o) {
+        IMutableRow<cell_t> deltaCopy = AbstractRow.copy(o.getDelta());
+        return new RowEdit<cell_t>(o.getDifferenceType(), deltaCopy);
     }
 
 }
