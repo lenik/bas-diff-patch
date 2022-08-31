@@ -9,17 +9,17 @@ public class RowUtils {
     /**
      * Determine the common prefix of two strings
      *
-     * @param text1
+     * @param row1
      *            First string.
-     * @param text2
+     * @param row2
      *            Second string.
      * @return The number of characters common to the start of each string.
      */
-    public static <cell_t> int commonPrefix(IRow<? extends cell_t> text1, IRow<? extends cell_t> text2) {
+    public static <cell_t> int commonPrefix(IRow<? extends cell_t> row1, IRow<? extends cell_t> row2) {
         // Performance analysis: https://neil.fraser.name/news/2007/10/09/
-        int n = Math.min(text1.length(), text2.length());
+        int n = Math.min(row1.length(), row2.length());
         for (int i = 0; i < n; i++) {
-            if (Nullables.notEquals(text1.cellAt(i), text2.cellAt(i))) {
+            if (Nullables.notEquals(row1.cellAt(i), row2.cellAt(i))) {
                 return i;
             }
         }
@@ -29,19 +29,19 @@ public class RowUtils {
     /**
      * Determine the common suffix of two strings
      *
-     * @param text1
+     * @param row1
      *            First string.
-     * @param text2
+     * @param row2
      *            Second string.
      * @return The number of characters common to the end of each string.
      */
-    public static <cell_t> int commonSuffix(IRow<? extends cell_t> text1, IRow<? extends cell_t> text2) {
+    public static <cell_t> int commonSuffix(IRow<? extends cell_t> row1, IRow<? extends cell_t> row2) {
         // Performance analysis: https://neil.fraser.name/news/2007/10/09/
-        int text1_length = text1.length();
-        int text2_length = text2.length();
-        int n = Math.min(text1_length, text2_length);
+        int row1_length = row1.length();
+        int row2_length = row2.length();
+        int n = Math.min(row1_length, row2_length);
         for (int i = 1; i <= n; i++) {
-            if (Nullables.notEquals(text1.cellAt(text1_length - i), text2.cellAt(text2_length - i))) {
+            if (Nullables.notEquals(row1.cellAt(row1_length - i), row2.cellAt(row2_length - i))) {
                 return i - 1;
             }
         }
@@ -51,30 +51,30 @@ public class RowUtils {
     /**
      * Determine if the suffix of one string is the prefix of another.
      *
-     * @param text1
+     * @param row1
      *            First string.
-     * @param text2
+     * @param row2
      *            Second string.
      * @return The number of characters common to the end of the first string and the start of the
      *         second string.
      */
-    static <cell_t> int commonOverlap(IRow<cell_t> text1, IRow<cell_t> text2) {
+    static <cell_t> int commonOverlap(IRow<cell_t> row1, IRow<cell_t> row2) {
         // Cache the text lengths to prevent multiple calls.
-        int text1_length = text1.length();
-        int text2_length = text2.length();
+        int row1_length = row1.length();
+        int row2_length = row2.length();
         // Eliminate the null case.
-        if (text1_length == 0 || text2_length == 0) {
+        if (row1_length == 0 || row2_length == 0) {
             return 0;
         }
         // Truncate the longer string.
-        if (text1_length > text2_length) {
-            text1 = text1.slice(text1_length - text2_length);
-        } else if (text1_length < text2_length) {
-            text2 = text2.slice(0, text1_length);
+        if (row1_length > row2_length) {
+            row1 = row1.slice(row1_length - row2_length);
+        } else if (row1_length < row2_length) {
+            row2 = row2.slice(0, row1_length);
         }
-        int text_length = Math.min(text1_length, text2_length);
+        int text_length = Math.min(row1_length, row2_length);
         // Quick check for the worst case.
-        if (text1.equals(text2)) {
+        if (row1.equals(row2)) {
             return text_length;
         }
 
@@ -84,13 +84,13 @@ public class RowUtils {
         int best = 0;
         int length = 1;
         while (true) {
-            IRow<? extends cell_t> pattern = text1.slice(text_length - length);
-            int found = text2.indexOf(pattern);
+            IRow<? extends cell_t> pattern = row1.slice(text_length - length);
+            int found = row2.indexOf(pattern);
             if (found == -1) {
                 return best;
             }
             length += found;
-            if (found == 0 || text1.slice(text_length - length).equals(text2.slice(0, length))) {
+            if (found == 0 || row1.slice(text_length - length).equals(row2.slice(0, length))) {
                 best = length;
                 length++;
             }
@@ -101,21 +101,21 @@ public class RowUtils {
      * Do the two texts share a substring which is at least half the length of the longer text? This
      * speedup can produce non-minimal diffs.
      *
-     * @param text1
+     * @param row1
      *            First string.
-     * @param text2
+     * @param row2
      *            Second string.
-     * @return Five element String array, containing the prefix of text1, the suffix of text1, the
-     *         prefix of text2, the suffix of text2 and the common middle. Or null if there was no
+     * @return Five element String array, containing the prefix of row1, the suffix of row1, the
+     *         prefix of row2, the suffix of row2 and the common middle. Or null if there was no
      *         match.
      */
-    public static <cell_t> HalfMatch<cell_t> halfMatch(Config config, IRow<cell_t> text1, IRow<cell_t> text2) {
+    public static <cell_t> HalfMatch<cell_t> halfMatch(Config config, IRow<cell_t> row1, IRow<cell_t> row2) {
         if (config.Diff_Timeout <= 0) {
             // Don't risk returning a non-optimal diff if we have unlimited time.
             return null;
         }
-        IRow<cell_t> longtext = text1.length() > text2.length() ? text1 : text2;
-        IRow<cell_t> shorttext = text1.length() > text2.length() ? text2 : text1;
+        IRow<cell_t> longtext = row1.length() > row2.length() ? row1 : row2;
+        IRow<cell_t> shorttext = row1.length() > row2.length() ? row2 : row1;
         if (longtext.length() < 4 || shorttext.length() * 2 < longtext.length()) {
             return null; // Pointless.
         }
@@ -137,7 +137,7 @@ public class RowUtils {
         }
 
         // A half-match was found, sort out the return data.
-        if (text1.length() > text2.length()) {
+        if (row1.length() > row2.length()) {
             return hm;
             // return new String[]{hm[0], hm[1], hm[2], hm[3], hm[4]};
         } else {

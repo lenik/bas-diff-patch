@@ -25,10 +25,10 @@ public class ChangeList<cell_t>
     }
 
     /**
-     * Given the original text1, and an encoded string which describes the operations required to
-     * transform text1 into text2, compute the full diff.
+     * Given the original row1, and an encoded string which describes the types required to
+     * transform row1 into row2, compute the full diff.
      *
-     * @param text1
+     * @param row1
      *            Source string for the diff.
      * @param delta
      *            Delta text.
@@ -36,10 +36,10 @@ public class ChangeList<cell_t>
      *             If invalid input.
      */
     public static <cell_t> ChangeList<cell_t> fromDelta(DMPRowComparator<cell_t> dmp, //
-            IRow<cell_t> text1, String delta)
+            IRow<cell_t> row1, String delta)
             throws IllegalArgumentException {
         ChangeList<cell_t> list = new ChangeList<cell_t>(dmp);
-        list.readDelta(text1, delta);
+        list.readDelta(row1, delta);
         return list;
     }
 

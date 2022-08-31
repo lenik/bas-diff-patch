@@ -225,7 +225,7 @@ public abstract class DMPRowComparator<cell_t>
         ListIterator<RowEdit<cell_t>> pointer = diffs.listIterator();
         RowEdit<cell_t> thisDiff = pointer.next();
         while (thisDiff != null) {
-            switch (thisDiff.operation) {
+            switch (thisDiff.type) {
             case INSERTION:
                 count_insert++;
                 text_insert.append(thisDiff.row);
@@ -264,19 +264,19 @@ public abstract class DMPRowComparator<cell_t>
      * Find the 'middle snake' of a diff, split the problem in two and return the recursively
      * constructed diff. See Myers 1986 paper: An O(ND) Difference Algorithm and Its Variations.
      *
-     * @param text1
+     * @param row1
      *            Old string to be diffed.
-     * @param text2
+     * @param row2
      *            New string to be diffed.
      * @param deadline
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    <T extends cell_t> EditList<cell_t> _bisect(IRow<T> text1, IRow<T> text2, long deadline) {
+    <T extends cell_t> EditList<cell_t> _bisect(IRow<T> row1, IRow<T> row2, long deadline) {
         // Cache the text lengths to prevent multiple calls.
-        int text1_length = text1.length();
-        int text2_length = text2.length();
-        int max_d = (text1_length + text2_length + 1) / 2;
+        int row1_length = row1.length();
+        int row2_length = row2.length();
+        int max_d = (row1_length + row2_length + 1) / 2;
         int v_offset = max_d;
         int v_length = 2 * max_d;
         int[] v1 = new int[v_length];
@@ -287,7 +287,7 @@ public abstract class DMPRowComparator<cell_t>
         }
         v1[v_offset + 1] = 0;
         v2[v_offset + 1] = 0;
-        int delta = text1_length - text2_length;
+        int delta = row1_length - row2_length;
         // If the total number of characters is odd, then the front path will
         // collide with the reverse path.
         boolean front = (delta % 2 != 0);
@@ -313,25 +313,25 @@ public abstract class DMPRowComparator<cell_t>
                     x1 = v1[k1_offset - 1] + 1;
                 }
                 int y1 = x1 - k1;
-                while (x1 < text1_length && y1 < text2_length && Nullables.equals(text1.cellAt(x1), text2.cellAt(y1))) {
+                while (x1 < row1_length && y1 < row2_length && Nullables.equals(row1.cellAt(x1), row2.cellAt(y1))) {
                     x1++;
                     y1++;
                 }
                 v1[k1_offset] = x1;
-                if (x1 > text1_length) {
+                if (x1 > row1_length) {
                     // Ran off the right of the graph.
                     k1end += 2;
-                } else if (y1 > text2_length) {
+                } else if (y1 > row2_length) {
                     // Ran off the bottom of the graph.
                     k1start += 2;
                 } else if (front) {
                     int k2_offset = v_offset + delta - k1;
                     if (k2_offset >= 0 && k2_offset < v_length && v2[k2_offset] != -1) {
                         // Mirror x2 onto top-left coordinate system.
-                        int x2 = text1_length - v2[k2_offset];
+                        int x2 = row1_length - v2[k2_offset];
                         if (x1 >= x2) {
                             // Overlap detected.
-                            return _bisectSplit(text1, text2, x1, y1, deadline);
+                            return _bisectSplit(row1, row2, x1, y1, deadline);
                         }
                     }
                 }
@@ -347,16 +347,16 @@ public abstract class DMPRowComparator<cell_t>
                     x2 = v2[k2_offset - 1] + 1;
                 }
                 int y2 = x2 - k2;
-                while (x2 < text1_length && y2 < text2_length
-                        && Nullables.equals(text1.cellAt(text1_length - x2 - 1), text2.cellAt(text2_length - y2 - 1))) {
+                while (x2 < row1_length && y2 < row2_length
+                        && Nullables.equals(row1.cellAt(row1_length - x2 - 1), row2.cellAt(row2_length - y2 - 1))) {
                     x2++;
                     y2++;
                 }
                 v2[k2_offset] = x2;
-                if (x2 > text1_length) {
+                if (x2 > row1_length) {
                     // Ran off the left of the graph.
                     k2end += 2;
-                } else if (y2 > text2_length) {
+                } else if (y2 > row2_length) {
                     // Ran off the top of the graph.
                     k2start += 2;
                 } else if (!front) {
@@ -365,10 +365,10 @@ public abstract class DMPRowComparator<cell_t>
                         int x1 = v1[k1_offset];
                         int y1 = v_offset + x1 - k1_offset;
                         // Mirror x2 onto top-left coordinate system.
-                        x2 = text1_length - x2;
+                        x2 = row1_length - x2;
                         if (x1 >= x2) {
                             // Overlap detected.
-                            return _bisectSplit(text1, text2, x1, y1, deadline);
+                            return _bisectSplit(row1, row2, x1, y1, deadline);
                         }
                     }
                 }
@@ -377,8 +377,8 @@ public abstract class DMPRowComparator<cell_t>
         // Diff took too long and hit the deadline or
         // number of diffs equals number of characters, no commonality at all.
         EditList<cell_t> diffs = new EditList<cell_t>(this);
-        diffs.append(new RowDifference<T>(DifferenceType.REMOVAL, text1));
-        diffs.append(new RowDifference<T>(DifferenceType.INSERTION, text2));
+        diffs.append(new RowDifference<T>(DifferenceType.REMOVAL, row1));
+        diffs.append(new RowDifference<T>(DifferenceType.INSERTION, row2));
         return diffs;
     }
 
@@ -390,9 +390,9 @@ public abstract class DMPRowComparator<cell_t>
      * @param row2
      *            New string to be diffed.
      * @param x
-     *            Index of split point in text1.
+     *            Index of split point in row1.
      * @param y
-     *            Index of split point in text2.
+     *            Index of split point in row2.
      * @param deadline
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.

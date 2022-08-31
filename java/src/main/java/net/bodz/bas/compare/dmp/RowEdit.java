@@ -8,22 +8,22 @@ public class RowEdit<cell_t>
         implements
             IRowEdit<cell_t> {
 
-    DifferenceType operation;
+    DifferenceType type;
     IMutableRow<cell_t> row;
 
-    public RowEdit(DifferenceType operation, IMutableRow<cell_t> row) {
-        this.operation = operation;
+    public RowEdit(DifferenceType type, IMutableRow<cell_t> row) {
+        this.type = type;
         this.row = row;
     }
 
     @Override
     public DifferenceType getDifferenceType() {
-        return operation;
+        return type;
     }
 
     @Override
-    public void setDifferenceType(DifferenceType operation) {
-        this.operation = operation;
+    public void setDifferenceType(DifferenceType type) {
+        this.type = type;
     }
 
     @Override

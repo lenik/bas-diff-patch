@@ -29,7 +29,7 @@ public class RowPacker<cell_t> {
      *            First string.
      * @param row2
      *            Second string.
-     * @return An object containing the encoded text1, the encoded text2 and the List of unique
+     * @return An object containing the encoded row1, the encoded row2 and the List of unique
      *         strings. The zeroth element of the List of unique strings is intentionally blank.
      */
     public <T extends cell_t> LinesToCharsResult<T> pack(IRow<T> row1, IRow<T> row2) {
@@ -42,7 +42,7 @@ public class RowPacker<cell_t> {
         // So we'll insert a junk entry to avoid generating a null character.
         packArray.add(new MutableRow<T>());
 
-        // Allocate 2/3rds of the space for text1, the rest for text2.
+        // Allocate 2/3rds of the space for row1, the rest for row2.
         IRow<Integer> atoms1 = splitAndPack(row1, packArray, packHash, 40000);
         IRow<Integer> atoms2 = splitAndPack(row2, packArray, packHash, 65535);
         return new LinesToCharsResult<T>(atoms1, atoms2, packArray);

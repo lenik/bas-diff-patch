@@ -10,7 +10,7 @@ public class Config {
      */
     public float Diff_Timeout = 1.0f;
     /**
-     * Cost of an empty edit operation in terms of edit characters.
+     * Cost of an empty edit type in terms of edit characters.
      */
     public short Diff_EditCost = 4;
     /**

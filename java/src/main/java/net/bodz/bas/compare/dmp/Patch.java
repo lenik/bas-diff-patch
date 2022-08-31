@@ -3,7 +3,7 @@ package net.bodz.bas.compare.dmp;
 import net.bodz.bas.text.row.IRow;
 
 /**
- * Class representing one patch operation.
+ * Class representing one patch type.
  */
 public class Patch<cell_t> {
 
@@ -105,7 +105,7 @@ public class Patch<cell_t> {
         text.append("@@ -").append(coords1).append(" +").append(coords2).append(" @@\n");
         // Escape the body of the patch with %xx notation.
         for (RowEdit<cell_t> aDiff : this.diffs) {
-            switch (aDiff.operation) {
+            switch (aDiff.type) {
             case INSERTION:
                 text.append('+');
                 break;

@@ -52,7 +52,7 @@ public class EditList<cell_t>
         int length_deletions2 = 0;
         RowEdit<cell_t> thisDiff = pointer.next();
         while (thisDiff != null) {
-            if (thisDiff.operation == DifferenceType.MATCH) {
+            if (thisDiff.type == DifferenceType.MATCH) {
                 // Equality found.
                 equalities.push(thisDiff);
                 length_insertions1 = length_insertions2;
@@ -62,7 +62,7 @@ public class EditList<cell_t>
                 lastEquality = thisDiff.row;
             } else {
                 // An insertion or deletion.
-                if (thisDiff.operation == DifferenceType.INSERTION) {
+                if (thisDiff.type == DifferenceType.INSERTION) {
                     length_insertions2 += thisDiff.row.length();
                 } else {
                     length_deletions2 += thisDiff.row.length();
@@ -133,7 +133,7 @@ public class EditList<cell_t>
             }
         }
         while (thisDiff != null) {
-            if (prevDiff.operation == DifferenceType.REMOVAL && thisDiff.operation == DifferenceType.INSERTION) {
+            if (prevDiff.type == DifferenceType.REMOVAL && thisDiff.type == DifferenceType.INSERTION) {
                 IMutableRow<cell_t> deletion = prevDiff.row;
                 IMutableRow<cell_t> insertion = thisDiff.row;
                 int overlap_length1 = RowUtils.commonOverlap(deletion, insertion);
@@ -154,9 +154,9 @@ public class EditList<cell_t>
                         // Insert an equality and swap and trim the surrounding edits.
                         pointer.previous();
                         pointer.add(new RowEdit<cell_t>(DifferenceType.MATCH, deletion.slice(0, overlap_length2)));
-                        prevDiff.operation = DifferenceType.INSERTION;
+                        prevDiff.type = DifferenceType.INSERTION;
                         prevDiff.row = insertion.slice(0, insertion.length() - overlap_length2);
-                        thisDiff.operation = DifferenceType.REMOVAL;
+                        thisDiff.type = DifferenceType.REMOVAL;
                         thisDiff.row = deletion.slice(overlap_length2, deletion.length());
                         // pointer.add inserts the element before the cursor, so there is
                         // no need to step past the new element.
@@ -189,7 +189,7 @@ public class EditList<cell_t>
         RowEdit<cell_t> nextDiff = pointer.hasNext() ? pointer.next() : null;
         // Intentionally ignore the first and last element (don't need checking).
         while (nextDiff != null) {
-            if (prevDiff.operation == DifferenceType.MATCH && nextDiff.operation == DifferenceType.MATCH) {
+            if (prevDiff.type == DifferenceType.MATCH && nextDiff.type == DifferenceType.MATCH) {
                 // This is a single edit surrounded by equalities.
                 equality1 = prevDiff.row;
                 edit = thisDiff.row;
@@ -253,7 +253,7 @@ public class EditList<cell_t>
     }
 
     /**
-     * Reduce the number of edits by eliminating operationally trivial equalities.
+     * Reduce the number of edits by eliminating typeally trivial equalities.
      *
      * @param diffs
      *            LinkedList of Diff objects.
@@ -267,19 +267,19 @@ public class EditList<cell_t>
         Deque<RowEdit<cell_t>> equalities = new ArrayDeque<RowEdit<cell_t>>(); // Double-ended
         IMutableRow<cell_t> lastEquality = null; // Always equal to equalities.peek().text
         ListIterator<RowEdit<cell_t>> pointer = listIterator();
-        // Is there an insertion operation before the last equality.
+        // Is there an insertion type before the last equality.
         boolean pre_ins = false;
-        // Is there a deletion operation before the last equality.
+        // Is there a deletion type before the last equality.
         boolean pre_del = false;
-        // Is there an insertion operation after the last equality.
+        // Is there an insertion type after the last equality.
         boolean post_ins = false;
-        // Is there a deletion operation after the last equality.
+        // Is there a deletion type after the last equality.
         boolean post_del = false;
         RowEdit<cell_t> thisDiff = pointer.next();
         RowEdit<cell_t> safeDiff = thisDiff; // The last Diff that is known to be
                                              // unsplittable.
         while (thisDiff != null) {
-            if (thisDiff.operation == DifferenceType.MATCH) {
+            if (thisDiff.type == DifferenceType.MATCH) {
                 // Equality found.
                 if (thisDiff.row.length() < config.Diff_EditCost && (post_ins || post_del)) {
                     // Candidate found.
@@ -296,7 +296,7 @@ public class EditList<cell_t>
                 post_ins = post_del = false;
             } else {
                 // An insertion or deletion.
-                if (thisDiff.operation == DifferenceType.REMOVAL) {
+                if (thisDiff.type == DifferenceType.REMOVAL) {
                     post_del = true;
                 } else {
                     post_ins = true;
@@ -379,7 +379,7 @@ public class EditList<cell_t>
         RowEdit<cell_t> prevEqual = null;
         int commonlength;
         while (thisDiff != null) {
-            switch (thisDiff.operation) {
+            switch (thisDiff.type) {
             case INSERTION:
                 count_insert++;
                 text_insert.append(thisDiff.row);
@@ -409,7 +409,7 @@ public class EditList<cell_t>
                         if (commonlength != 0) {
                             if (pointer.hasPrevious()) {
                                 thisDiff = pointer.previous();
-                                assert thisDiff.operation == DifferenceType.MATCH : "Previous diff should have been an equality.";
+                                assert thisDiff.type == DifferenceType.MATCH : "Previous diff should have been an equality.";
                                 thisDiff.row = thisDiff.row.concat(text_insert.slice(0, commonlength));
                                 pointer.next();
                             } else {
@@ -471,7 +471,7 @@ public class EditList<cell_t>
         RowEdit<cell_t> nextDiff = pointer.hasNext() ? pointer.next() : null;
         // Intentionally ignore the first and last element (don't need checking).
         while (nextDiff != null) {
-            if (prevDiff.operation == DifferenceType.MATCH && nextDiff.operation == DifferenceType.MATCH) {
+            if (prevDiff.type == DifferenceType.MATCH && nextDiff.type == DifferenceType.MATCH) {
                 // This is a single edit surrounded by equalities.
                 if (thisDiff.row.endsWith(prevDiff.row)) {
                     // Shift the edit over the previous equality.
@@ -516,10 +516,10 @@ public class EditList<cell_t>
     }
 
     /**
-     * Given the original text1, and an encoded string which describes the operations required to
-     * transform text1 into text2, compute the full diff.
+     * Given the original row1, and an encoded string which describes the types required to
+     * transform row1 into row2, compute the full diff.
      *
-     * @param text1
+     * @param row1
      *            Source string for the diff.
      * @param delta
      *            Delta text.
@@ -527,15 +527,15 @@ public class EditList<cell_t>
      *             If invalid input.
      */
     public static <cell_t> EditList<cell_t> fromDelta(DMPRowComparator<cell_t> dmp, //
-            IRow<cell_t> text1, String delta)
+            IRow<cell_t> row1, String delta)
             throws IllegalArgumentException {
         EditList<cell_t> list = new EditList<cell_t>(dmp);
-        list.readDelta(text1, delta);
+        list.readDelta(row1, delta);
         return list;
     }
 
     /**
-     * Compute a list of patches to turn text1 into text2. A set of diffs will be computed.
+     * Compute a list of patches to turn row1 into row2. A set of diffs will be computed.
      *
      * @param row1
      *            Old text.
@@ -556,11 +556,11 @@ public class EditList<cell_t>
     }
 
     /**
-     * Compute a list of patches to turn text1 into text2. text1 will be derived from the provided
+     * Compute a list of patches to turn row1 into row2. row1 will be derived from the provided
      * diffs.
      *
      * @param diffs
-     *            Array of Diff objects for text1 to text2.
+     *            Array of Diff objects for row1 to row2.
      * @return LinkedList of Patch objects.
      */
     public PatchList<cell_t> createPatch() {
@@ -570,17 +570,17 @@ public class EditList<cell_t>
     }
 
     /**
-     * Compute a list of patches to turn text1 into text2. text2 is not provided, diffs are the
-     * delta between text1 and text2.
+     * Compute a list of patches to turn row1 into row2. row2 is not provided, diffs are the
+     * delta between row1 and row2.
      *
-     * @param text1
+     * @param row1
      *            Old text.
      * @param diffs
-     *            Array of Diff objects for text1 to text2.
+     *            Array of Diff objects for row1 to row2.
      * @return LinkedList of Patch objects.
      */
-    PatchList<cell_t> patch_make(IRow<cell_t> text1, EditList<cell_t> diffs) {
-        if (text1 == null || diffs == null) {
+    PatchList<cell_t> patch_make(IRow<cell_t> row1, EditList<cell_t> diffs) {
+        if (row1 == null || diffs == null) {
             throw new IllegalArgumentException("Null inputs. (patch_make)");
         }
 
@@ -589,21 +589,21 @@ public class EditList<cell_t>
             return patches; // Get rid of the null case.
         }
         Patch<cell_t> patch = new Patch<cell_t>(dmp);
-        int char_count1 = 0; // Number of characters into the text1 string.
-        int char_count2 = 0; // Number of characters into the text2 string.
-        // Start with text1 (prepatch_text) and apply the diffs until we arrive at
-        // text2 (postpatch_text). We recreate the patches one by one to determine
+        int char_count1 = 0; // Number of characters into the row1 string.
+        int char_count2 = 0; // Number of characters into the row2 string.
+        // Start with row1 (prepatch_text) and apply the diffs until we arrive at
+        // row2 (postpatch_text). We recreate the patches one by one to determine
         // context info.
-        IRow<cell_t> prepatch_text = text1;
-        IRow<cell_t> postpatch_text = text1;
+        IRow<cell_t> prepatch_text = row1;
+        IRow<cell_t> postpatch_text = row1;
         for (RowEdit<cell_t> aDiff : diffs) {
-            if (patch.diffs.isEmpty() && aDiff.operation != DifferenceType.MATCH) {
+            if (patch.diffs.isEmpty() && aDiff.type != DifferenceType.MATCH) {
                 // A new patch starts here.
                 patch.start1 = char_count1;
                 patch.start2 = char_count2;
             }
 
-            switch (aDiff.operation) {
+            switch (aDiff.type) {
             case INSERTION:
                 patch.diffs.add(aDiff);
                 patch.length2 += aDiff.row.length();
@@ -643,10 +643,10 @@ public class EditList<cell_t>
             }
 
             // Update the current character count.
-            if (aDiff.operation != DifferenceType.INSERTION) {
+            if (aDiff.type != DifferenceType.INSERTION) {
                 char_count1 += aDiff.row.length();
             }
-            if (aDiff.operation != DifferenceType.REMOVAL) {
+            if (aDiff.type != DifferenceType.REMOVAL) {
                 char_count2 += aDiff.row.length();
             }
         }

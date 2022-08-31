@@ -34,14 +34,14 @@ public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
     <T extends cell_t> void append(IRowDifference<T> diff);
 
     /**
-     * loc is a location in text1, compute and return the equivalent location in text2. e.g. "The
+     * loc is a location in row1, compute and return the equivalent location in row2. e.g. "The
      * cat" vs "The big cat", 1->1, 5->8
      *
      * @param diffs
      *            List of Diff objects.
      * @param loc
-     *            Location within text1.
-     * @return Location within text2.
+     *            Location within row1.
+     * @return Location within row2.
      */
     int xIndex(int loc);
 
@@ -82,8 +82,8 @@ public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
     int levenshtein();
 
     /**
-     * Crush the diff into an encoded string which describes the operations required to transform
-     * text1 into text2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations
+     * Crush the diff into an encoded string which describes the types required to transform
+     * row1 into row2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations
      * are tab-separated. Inserted text is escaped using %xx notation.
      *
      * @param diffs
@@ -93,16 +93,16 @@ public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
     String toDelta();
 
     /**
-     * Given the original text1, and an encoded string which describes the operations required to
-     * transform text1 into text2, compute the full diff.
+     * Given the original row1, and an encoded string which describes the types required to
+     * transform row1 into row2, compute the full diff.
      *
-     * @param text1
+     * @param row1
      *            Source string for the diff.
      * @param delta
      *            Delta text.
      * @throws IllegalArgumentException
      *             If invalid input.
      */
-    void readDelta(IRow<cell_t> text1, String delta)
+    void readDelta(IRow<cell_t> row1, String delta)
             throws IllegalArgumentException;
 }

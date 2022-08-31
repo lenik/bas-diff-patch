@@ -47,8 +47,8 @@ public abstract class AbstractRowDifference<cell_t>
     @Override
     public int hashCode() {
         final int prime = 31;
-        DifferenceType operation = getDifferenceType();
-        int result = (operation == null) ? 0 : operation.hashCode();
+        DifferenceType type = getDifferenceType();
+        int result = (type == null) ? 0 : type.hashCode();
         IRow<cell_t> row = getRow();
         result += prime * ((row == null) ? 0 : row.hashCode());
         return result;
@@ -73,9 +73,9 @@ public abstract class AbstractRowDifference<cell_t>
             return false;
         }
         AbstractRowDifference<?> other = (AbstractRowDifference<?>) obj;
-        DifferenceType operation1 = getDifferenceType();
-        DifferenceType operation2 = other.getDifferenceType();
-        if (operation1 != operation2) {
+        DifferenceType type1 = getDifferenceType();
+        DifferenceType type2 = other.getDifferenceType();
+        if (type1 != type2) {
             return false;
         }
         IRow<cell_t> row1 = getRow();

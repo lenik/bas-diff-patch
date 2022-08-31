@@ -20,7 +20,7 @@ public class diff_match_patch_compat {
 
     RowDifference<Character> convR(_Diff diff) {
         CharsView text = convText(diff.text);
-        return new RowDifference<Character>(diff.operation, text);
+        return new RowDifference<Character>(diff.type, text);
     }
 
     LinkedList<_Diff> convDiffs(IDiffList<? extends IRowDifference<Character>, ?> o) {
@@ -261,16 +261,16 @@ public class diff_match_patch_compat {
     }
 
     /**
-     * Class representing one diff operation.
+     * Class representing one diff type.
      */
     public static class _Diff {
 
         /**
          * One of: INSERT, DELETE or EQUAL.
          */
-        public DifferenceType operation;
+        public DifferenceType type;
         /**
-         * The text associated with this diff operation.
+         * The text associated with this diff type.
          */
         public String text;
 
@@ -279,14 +279,14 @@ public class diff_match_patch_compat {
         /**
          * Constructor. Initializes the diff with the provided values.
          *
-         * @param operation
+         * @param type
          *            One of INSERT, DELETE or EQUAL.
          * @param text
          *            The text being applied.
          */
-        public _Diff(DifferenceType operation, String text) {
-            // Construct a diff with the specified operation and text.
-            this.operation = operation;
+        public _Diff(DifferenceType type, String text) {
+            // Construct a diff with the specified type and text.
+            this.type = type;
             this.text = text;
         }
 
@@ -298,7 +298,7 @@ public class diff_match_patch_compat {
         @Override
         public String toString() {
             String prettyText = text.replace('\n', '\u00b6');
-            return "Diff(" + this.operation + ",\"" + prettyText + "\")";
+            return "Diff(" + this.type + ",\"" + prettyText + "\")";
         }
 
         /**
@@ -309,7 +309,7 @@ public class diff_match_patch_compat {
         @Override
         public int hashCode() {
             final int prime = 31;
-            int result = (operation == null) ? 0 : operation.hashCode();
+            int result = (type == null) ? 0 : type.hashCode();
             result += prime * ((text == null) ? 0 : text.hashCode());
             return result;
         }
@@ -333,7 +333,7 @@ public class diff_match_patch_compat {
                 return false;
             }
             _Diff other = (_Diff) obj;
-            if (operation != other.operation) {
+            if (type != other.type) {
                 return false;
             }
             if (text == null) {
@@ -348,7 +348,7 @@ public class diff_match_patch_compat {
     }
 
     /**
-     * Class representing one patch operation.
+     * Class representing one patch type.
      */
     public static class _Patch {
         public LinkedList<_Diff> diffs;
@@ -399,7 +399,7 @@ public class diff_match_patch_compat {
             text.append("@@ -").append(coords1).append(" +").append(coords2).append(" @@\n");
             // Escape the body of the patch with %xx notation.
             for (_Diff aDiff : this.diffs) {
-                switch (aDiff.operation) {
+                switch (aDiff.type) {
                 case INSERTION:
                     text.append('+');
                     break;

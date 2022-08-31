@@ -336,7 +336,7 @@ public class diff_match_patch_test {
   }
 
   public static void testDiffCleanupEfficiency() {
-    // Cleanup operationally trivial equalities.
+    // Cleanup typeally trivial equalities.
     dmp.Diff_EditCost = 4;
     LinkedList<Diff> diffs = diffList();
     dmp.diff_cleanupEfficiency(diffs);
@@ -944,10 +944,10 @@ public class diff_match_patch_test {
   private static String[] diff_rebuildtexts(LinkedList<Diff> diffs) {
     String[] text = {"", ""};
     for (Diff myDiff : diffs) {
-      if (myDiff.operation != diff_match_patch.Operation.INSERT) {
+      if (myDiff.type != diff_match_patch.Operation.INSERT) {
         text[0] += myDiff.text;
       }
-      if (myDiff.operation != diff_match_patch.Operation.DELETE) {
+      if (myDiff.type != diff_match_patch.Operation.DELETE) {
         text[1] += myDiff.text;
       }
     }

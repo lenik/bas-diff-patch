@@ -81,14 +81,14 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
     }
 
     /**
-     * loc is a location in text1, compute and return the equivalent location in text2. e.g. "The
+     * loc is a location in row1, compute and return the equivalent location in row2. e.g. "The
      * cat" vs "The big cat", 1->1, 5->8
      *
      * @param diffs
      *            List of Diff objects.
      * @param loc
-     *            Location within text1.
-     * @return Location within text2.
+     *            Location within row1.
+     * @return Location within row2.
      */
     public final int xIndex(int loc) {
         int chars1 = 0;
@@ -217,8 +217,8 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
     }
 
     /**
-     * Crush the diff into an encoded string which describes the operations required to transform
-     * text1 into text2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations
+     * Crush the diff into an encoded string which describes the types required to transform
+     * row1 into row2. E.g. =3\t-2\t+ing -> Keep 3 chars, delete 2 chars, insert 'ing'. Operations
      * are tab-separated. Inserted text is escaped using %xx notation.
      *
      * @param diffs
@@ -256,20 +256,20 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
     protected abstract diff_t createDifference(DifferenceType type, IRow<cell_t> row, boolean allocated);
 
     /**
-     * Given the original text1, and an encoded string which describes the operations required to
-     * transform text1 into text2, compute the full diff.
+     * Given the original row1, and an encoded string which describes the types required to
+     * transform row1 into row2, compute the full diff.
      *
-     * @param text1
+     * @param row1
      *            Source string for the diff.
      * @param delta
      *            Delta text.
      * @throws IllegalArgumentException
      *             If invalid input.
      */
-    public final void readDelta(IRow<cell_t> text1, String delta)
+    public final void readDelta(IRow<cell_t> row1, String delta)
             throws IllegalArgumentException {
 
-        int pointer = 0; // Cursor in text1
+        int pointer = 0; // Cursor in row1
         String[] tokens = delta.split("\t");
         for (String token : tokens) {
             if (token.length() == 0) {
@@ -277,7 +277,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
                 continue;
             }
             // Each token begins with a one character parameter which specifies the
-            // operation of this token (delete, insert, equality).
+            // type of this token (delete, insert, equality).
             String param = token.substring(1);
             switch (token.charAt(0)) {
             case '+':
@@ -309,10 +309,10 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
                 }
                 IRow<cell_t> text;
                 try {
-                    text = text1.slice(pointer, pointer += n);
+                    text = row1.slice(pointer, pointer += n);
                 } catch (IndexOutOfBoundsException e) {
                     throw new IllegalArgumentException(
-                            "Delta length (" + pointer + ") larger than source text length (" + text1.length() + ").",
+                            "Delta length (" + pointer + ") larger than source text length (" + row1.length() + ").",
                             e);
                 }
                 if (token.charAt(0) == '=') {
@@ -323,12 +323,12 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
                 break;
             default:
                 // Anything else is an error.
-                throw new IllegalArgumentException("Invalid diff operation in diff_fromDelta: " + token.charAt(0));
+                throw new IllegalArgumentException("Invalid diff type in diff_fromDelta: " + token.charAt(0));
             }
         }
-        if (pointer != text1.length()) {
+        if (pointer != row1.length()) {
             throw new IllegalArgumentException(
-                    "Delta length (" + pointer + ") smaller than source text length (" + text1.length() + ").");
+                    "Delta length (" + pointer + ") smaller than source text length (" + row1.length() + ").");
         }
     }
 

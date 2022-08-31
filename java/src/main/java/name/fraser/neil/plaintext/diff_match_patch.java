@@ -47,7 +47,7 @@ public class diff_match_patch {
    */
   public float Diff_Timeout = 1.0f;
   /**
-   * Cost of an empty edit operation in terms of edit characters.
+   * Cost of an empty edit type in terms of edit characters.
    */
   public short Diff_EditCost = 4;
   /**
@@ -308,7 +308,7 @@ public class diff_match_patch {
     ListIterator<Diff> pointer = diffs.listIterator();
     Diff thisDiff = pointer.next();
     while (thisDiff != null) {
-      switch (thisDiff.operation) {
+      switch (thisDiff.type) {
       case INSERT:
         count_insert++;
         text_insert += thisDiff.text;
@@ -767,7 +767,7 @@ public class diff_match_patch {
     int length_deletions2 = 0;
     Diff thisDiff = pointer.next();
     while (thisDiff != null) {
-      if (thisDiff.operation == Operation.EQUAL) {
+      if (thisDiff.type == Operation.EQUAL) {
         // Equality found.
         equalities.push(thisDiff);
         length_insertions1 = length_insertions2;
@@ -777,7 +777,7 @@ public class diff_match_patch {
         lastEquality = thisDiff.text;
       } else {
         // An insertion or deletion.
-        if (thisDiff.operation == Operation.INSERT) {
+        if (thisDiff.type == Operation.INSERT) {
           length_insertions2 += thisDiff.text.length();
         } else {
           length_deletions2 += thisDiff.text.length();
@@ -851,8 +851,8 @@ public class diff_match_patch {
       }
     }
     while (thisDiff != null) {
-      if (prevDiff.operation == Operation.DELETE &&
-          thisDiff.operation == Operation.INSERT) {
+      if (prevDiff.type == Operation.DELETE &&
+          thisDiff.type == Operation.INSERT) {
         String deletion = prevDiff.text;
         String insertion = thisDiff.text;
         int overlap_length1 = this.diff_commonOverlap(deletion, insertion);
@@ -878,10 +878,10 @@ public class diff_match_patch {
             pointer.previous();
             pointer.add(new Diff(Operation.EQUAL,
                                  deletion.substring(0, overlap_length2)));
-            prevDiff.operation = Operation.INSERT;
+            prevDiff.type = Operation.INSERT;
             prevDiff.text =
               insertion.substring(0, insertion.length() - overlap_length2);
-            thisDiff.operation = Operation.DELETE;
+            thisDiff.type = Operation.DELETE;
             thisDiff.text = deletion.substring(overlap_length2);
             // pointer.add inserts the element before the cursor, so there is
             // no need to step past the new element.
@@ -913,8 +913,8 @@ public class diff_match_patch {
     Diff nextDiff = pointer.hasNext() ? pointer.next() : null;
     // Intentionally ignore the first and last element (don't need checking).
     while (nextDiff != null) {
-      if (prevDiff.operation == Operation.EQUAL &&
-          nextDiff.operation == Operation.EQUAL) {
+      if (prevDiff.type == Operation.EQUAL &&
+          nextDiff.type == Operation.EQUAL) {
         // This is a single edit surrounded by equalities.
         equality1 = prevDiff.text;
         edit = thisDiff.text;
@@ -1037,7 +1037,7 @@ public class diff_match_patch {
       = Pattern.compile("\\A\\r?\\n\\r?\\n", Pattern.DOTALL);
 
   /**
-   * Reduce the number of edits by eliminating operationally trivial equalities.
+   * Reduce the number of edits by eliminating typeally trivial equalities.
    * @param diffs LinkedList of Diff objects.
    */
   public void diff_cleanupEfficiency(LinkedList<Diff> diffs) {
@@ -1048,18 +1048,18 @@ public class diff_match_patch {
     Deque<Diff> equalities = new ArrayDeque<Diff>();  // Double-ended queue of equalities.
     String lastEquality = null; // Always equal to equalities.peek().text
     ListIterator<Diff> pointer = diffs.listIterator();
-    // Is there an insertion operation before the last equality.
+    // Is there an insertion type before the last equality.
     boolean pre_ins = false;
-    // Is there a deletion operation before the last equality.
+    // Is there a deletion type before the last equality.
     boolean pre_del = false;
-    // Is there an insertion operation after the last equality.
+    // Is there an insertion type after the last equality.
     boolean post_ins = false;
-    // Is there a deletion operation after the last equality.
+    // Is there a deletion type after the last equality.
     boolean post_del = false;
     Diff thisDiff = pointer.next();
     Diff safeDiff = thisDiff;  // The last Diff that is known to be unsplittable.
     while (thisDiff != null) {
-      if (thisDiff.operation == Operation.EQUAL) {
+      if (thisDiff.type == Operation.EQUAL) {
         // Equality found.
         if (thisDiff.text.length() < Diff_EditCost && (post_ins || post_del)) {
           // Candidate found.
@@ -1076,7 +1076,7 @@ public class diff_match_patch {
         post_ins = post_del = false;
       } else {
         // An insertion or deletion.
-        if (thisDiff.operation == Operation.DELETE) {
+        if (thisDiff.type == Operation.DELETE) {
           post_del = true;
         } else {
           post_ins = true;
@@ -1159,7 +1159,7 @@ public class diff_match_patch {
     Diff prevEqual = null;
     int commonlength;
     while (thisDiff != null) {
-      switch (thisDiff.operation) {
+      switch (thisDiff.type) {
       case INSERT:
         count_insert++;
         text_insert += thisDiff.text;
@@ -1189,7 +1189,7 @@ public class diff_match_patch {
             if (commonlength != 0) {
               if (pointer.hasPrevious()) {
                 thisDiff = pointer.previous();
-                assert thisDiff.operation == Operation.EQUAL
+                assert thisDiff.type == Operation.EQUAL
                        : "Previous diff should have been an equality.";
                 thisDiff.text += text_insert.substring(0, commonlength);
                 pointer.next();
@@ -1256,8 +1256,8 @@ public class diff_match_patch {
     Diff nextDiff = pointer.hasNext() ? pointer.next() : null;
     // Intentionally ignore the first and last element (don't need checking).
     while (nextDiff != null) {
-      if (prevDiff.operation == Operation.EQUAL &&
-          nextDiff.operation == Operation.EQUAL) {
+      if (prevDiff.type == Operation.EQUAL &&
+          nextDiff.type == Operation.EQUAL) {
         // This is a single edit surrounded by equalities.
         if (thisDiff.text.endsWith(prevDiff.text)) {
           // Shift the edit over the previous equality.
@@ -1308,11 +1308,11 @@ public class diff_match_patch {
     int last_chars2 = 0;
     Diff lastDiff = null;
     for (Diff aDiff : diffs) {
-      if (aDiff.operation != Operation.INSERT) {
+      if (aDiff.type != Operation.INSERT) {
         // Equality or deletion.
         chars1 += aDiff.text.length();
       }
-      if (aDiff.operation != Operation.DELETE) {
+      if (aDiff.type != Operation.DELETE) {
         // Equality or insertion.
         chars2 += aDiff.text.length();
       }
@@ -1324,7 +1324,7 @@ public class diff_match_patch {
       last_chars1 = chars1;
       last_chars2 = chars2;
     }
-    if (lastDiff != null && lastDiff.operation == Operation.DELETE) {
+    if (lastDiff != null && lastDiff.type == Operation.DELETE) {
       // The location was deleted.
       return last_chars2;
     }
@@ -1342,7 +1342,7 @@ public class diff_match_patch {
     for (Diff aDiff : diffs) {
       String text = aDiff.text.replace("&", "&amp;").replace("<", "&lt;")
           .replace(">", "&gt;").replace("\n", "&para;<br>");
-      switch (aDiff.operation) {
+      switch (aDiff.type) {
       case INSERT:
         html.append("<ins style=\"background:#e6ffe6;\">").append(text)
             .append("</ins>");
@@ -1367,7 +1367,7 @@ public class diff_match_patch {
   public String diff_text1(List<Diff> diffs) {
     StringBuilder text = new StringBuilder();
     for (Diff aDiff : diffs) {
-      if (aDiff.operation != Operation.INSERT) {
+      if (aDiff.type != Operation.INSERT) {
         text.append(aDiff.text);
       }
     }
@@ -1382,7 +1382,7 @@ public class diff_match_patch {
   public String diff_text2(List<Diff> diffs) {
     StringBuilder text = new StringBuilder();
     for (Diff aDiff : diffs) {
-      if (aDiff.operation != Operation.DELETE) {
+      if (aDiff.type != Operation.DELETE) {
         text.append(aDiff.text);
       }
     }
@@ -1400,7 +1400,7 @@ public class diff_match_patch {
     int insertions = 0;
     int deletions = 0;
     for (Diff aDiff : diffs) {
-      switch (aDiff.operation) {
+      switch (aDiff.type) {
       case INSERT:
         insertions += aDiff.text.length();
         break;
@@ -1420,7 +1420,7 @@ public class diff_match_patch {
   }
 
   /**
-   * Crush the diff into an encoded string which describes the operations
+   * Crush the diff into an encoded string which describes the types
    * required to transform text1 into text2.
    * E.g. =3\t-2\t+ing  -> Keep 3 chars, delete 2 chars, insert 'ing'.
    * Operations are tab-separated.  Inserted text is escaped using %xx notation.
@@ -1430,7 +1430,7 @@ public class diff_match_patch {
   public String diff_toDelta(List<Diff> diffs) {
     StringBuilder text = new StringBuilder();
     for (Diff aDiff : diffs) {
-      switch (aDiff.operation) {
+      switch (aDiff.type) {
       case INSERT:
         try {
           text.append("+").append(URLEncoder.encode(aDiff.text, "UTF-8")
@@ -1459,7 +1459,7 @@ public class diff_match_patch {
 
   /**
    * Given the original text1, and an encoded string which describes the
-   * operations required to transform text1 into text2, compute the full diff.
+   * types required to transform text1 into text2, compute the full diff.
    * @param text1 Source string for the diff.
    * @param delta Delta text.
    * @return Array of Diff objects or null if invalid.
@@ -1476,7 +1476,7 @@ public class diff_match_patch {
         continue;
       }
       // Each token begins with a one character parameter which specifies the
-      // operation of this token (delete, insert, equality).
+      // type of this token (delete, insert, equality).
       String param = token.substring(1);
       switch (token.charAt(0)) {
       case '+':
@@ -1525,7 +1525,7 @@ public class diff_match_patch {
       default:
         // Anything else is an error.
         throw new IllegalArgumentException(
-            "Invalid diff operation in diff_fromDelta: " + token.charAt(0));
+            "Invalid diff type in diff_fromDelta: " + token.charAt(0));
       }
     }
     if (pointer != text1.length()) {
@@ -1833,13 +1833,13 @@ public class diff_match_patch {
     String prepatch_text = text1;
     String postpatch_text = text1;
     for (Diff aDiff : diffs) {
-      if (patch.diffs.isEmpty() && aDiff.operation != Operation.EQUAL) {
+      if (patch.diffs.isEmpty() && aDiff.type != Operation.EQUAL) {
         // A new patch starts here.
         patch.start1 = char_count1;
         patch.start2 = char_count2;
       }
 
-      switch (aDiff.operation) {
+      switch (aDiff.type) {
       case INSERT:
         patch.diffs.add(aDiff);
         patch.length2 += aDiff.text.length();
@@ -1879,10 +1879,10 @@ public class diff_match_patch {
       }
 
       // Update the current character count.
-      if (aDiff.operation != Operation.INSERT) {
+      if (aDiff.type != Operation.INSERT) {
         char_count1 += aDiff.text.length();
       }
-      if (aDiff.operation != Operation.DELETE) {
+      if (aDiff.type != Operation.DELETE) {
         char_count2 += aDiff.text.length();
       }
     }
@@ -1905,7 +1905,7 @@ public class diff_match_patch {
     for (Patch aPatch : patches) {
       Patch patchCopy = new Patch();
       for (Diff aDiff : aPatch.diffs) {
-        Diff diffCopy = new Diff(aDiff.operation, aDiff.text);
+        Diff diffCopy = new Diff(aDiff.type, aDiff.text);
         patchCopy.diffs.add(diffCopy);
       }
       patchCopy.start1 = aPatch.start1;
@@ -2000,20 +2000,20 @@ public class diff_match_patch {
             diff_cleanupSemanticLossless(diffs);
             int index1 = 0;
             for (Diff aDiff : aPatch.diffs) {
-              if (aDiff.operation != Operation.EQUAL) {
+              if (aDiff.type != Operation.EQUAL) {
                 int index2 = diff_xIndex(diffs, index1);
-                if (aDiff.operation == Operation.INSERT) {
+                if (aDiff.type == Operation.INSERT) {
                   // Insertion
                   text = text.substring(0, start_loc + index2) + aDiff.text
                       + text.substring(start_loc + index2);
-                } else if (aDiff.operation == Operation.DELETE) {
+                } else if (aDiff.type == Operation.DELETE) {
                   // Deletion
                   text = text.substring(0, start_loc + index2)
                       + text.substring(start_loc + diff_xIndex(diffs,
                       index1 + aDiff.text.length()));
                 }
               }
-              if (aDiff.operation != Operation.DELETE) {
+              if (aDiff.type != Operation.DELETE) {
                 index1 += aDiff.text.length();
               }
             }
@@ -2050,7 +2050,7 @@ public class diff_match_patch {
     // Add some padding on start of first diff.
     Patch patch = patches.getFirst();
     LinkedList<Diff> diffs = patch.diffs;
-    if (diffs.isEmpty() || diffs.getFirst().operation != Operation.EQUAL) {
+    if (diffs.isEmpty() || diffs.getFirst().type != Operation.EQUAL) {
       // Add nullPadding equality.
       diffs.addFirst(new Diff(Operation.EQUAL, nullPadding));
       patch.start1 -= paddingLength;  // Should be 0.
@@ -2072,7 +2072,7 @@ public class diff_match_patch {
     // Add some padding on end of last diff.
     patch = patches.getLast();
     diffs = patch.diffs;
-    if (diffs.isEmpty() || diffs.getLast().operation != Operation.EQUAL) {
+    if (diffs.isEmpty() || diffs.getLast().type != Operation.EQUAL) {
       // Add nullPadding equality.
       diffs.addLast(new Diff(Operation.EQUAL, nullPadding));
       patch.length1 += paddingLength;
@@ -2127,7 +2127,7 @@ public class diff_match_patch {
         }
         while (!bigpatch.diffs.isEmpty()
             && patch.length1 < patch_size - Patch_Margin) {
-          diff_type = bigpatch.diffs.getFirst().operation;
+          diff_type = bigpatch.diffs.getFirst().type;
           diff_text = bigpatch.diffs.getFirst().text;
           if (diff_type == Operation.INSERT) {
             // Insertions are harmless.
@@ -2136,7 +2136,7 @@ public class diff_match_patch {
             patch.diffs.addLast(bigpatch.diffs.removeFirst());
             empty = false;
           } else if (diff_type == Operation.DELETE && patch.diffs.size() == 1
-              && patch.diffs.getFirst().operation == Operation.EQUAL
+              && patch.diffs.getFirst().type == Operation.EQUAL
               && diff_text.length() > 2 * patch_size) {
             // This is a large deletion.  Let it pass in one chunk.
             patch.length1 += diff_text.length();
@@ -2179,7 +2179,7 @@ public class diff_match_patch {
           patch.length1 += postcontext.length();
           patch.length2 += postcontext.length();
           if (!patch.diffs.isEmpty()
-              && patch.diffs.getLast().operation == Operation.EQUAL) {
+              && patch.diffs.getLast().type == Operation.EQUAL) {
             patch.diffs.getLast().text += postcontext;
           } else {
             patch.diffs.add(new Diff(Operation.EQUAL, postcontext));
@@ -2303,26 +2303,26 @@ public class diff_match_patch {
 
 
   /**
-   * Class representing one diff operation.
+   * Class representing one diff type.
    */
   public static class Diff {
     /**
      * One of: INSERT, DELETE or EQUAL.
      */
-    public Operation operation;
+    public Operation type;
     /**
-     * The text associated with this diff operation.
+     * The text associated with this diff type.
      */
     public String text;
 
     /**
      * Constructor.  Initializes the diff with the provided values.
-     * @param operation One of INSERT, DELETE or EQUAL.
+     * @param type One of INSERT, DELETE or EQUAL.
      * @param text The text being applied.
      */
-    public Diff(Operation operation, String text) {
-      // Construct a diff with the specified operation and text.
-      this.operation = operation;
+    public Diff(Operation type, String text) {
+      // Construct a diff with the specified type and text.
+      this.type = type;
       this.text = text;
     }
 
@@ -2333,7 +2333,7 @@ public class diff_match_patch {
     @Override
     public String toString() {
       String prettyText = this.text.replace('\n', '\u00b6');
-      return "Diff(" + this.operation + ",\"" + prettyText + "\")";
+      return "Diff(" + this.type + ",\"" + prettyText + "\")";
     }
 
     /**
@@ -2344,7 +2344,7 @@ public class diff_match_patch {
     @Override
     public int hashCode() {
       final int prime = 31;
-      int result = (operation == null) ? 0 : operation.hashCode();
+      int result = (type == null) ? 0 : type.hashCode();
       result += prime * ((text == null) ? 0 : text.hashCode());
       return result;
     }
@@ -2366,7 +2366,7 @@ public class diff_match_patch {
         return false;
       }
       Diff other = (Diff) obj;
-      if (operation != other.operation) {
+      if (type != other.type) {
         return false;
       }
       if (text == null) {
@@ -2382,7 +2382,7 @@ public class diff_match_patch {
 
 
   /**
-   * Class representing one patch operation.
+   * Class representing one patch type.
    */
   public static class Patch {
     public LinkedList<Diff> diffs;
@@ -2426,7 +2426,7 @@ public class diff_match_patch {
           .append(" @@\n");
       // Escape the body of the patch with %xx notation.
       for (Diff aDiff : this.diffs) {
-        switch (aDiff.operation) {
+        switch (aDiff.type) {
         case INSERT:
           text.append('+');
           break;

@@ -5,34 +5,34 @@ import net.bodz.bas.text.row.IMutableRow;
 import net.bodz.bas.text.row.IRow;
 
 /**
- * Class representing one diff operation.
+ * Class representing one diff type.
  */
 public class RowDifference<cell_t>
         extends AbstractRowDifference<cell_t> {
 
-    public final DifferenceType operation;
+    public final DifferenceType type;
 
     /**
-     * The text associated with this diff operation.
+     * The text associated with this diff type.
      */
     public final IRow<cell_t> row;
 
     /**
      * Constructor. Initializes the diff with the provided values.
      *
-     * @param operation
+     * @param type
      *            One of INSERT, DELETE or EQUAL.
      * @param row
      *            The text being applied.
      */
-    public RowDifference(DifferenceType operation, IRow<cell_t> row) {
-        this.operation = operation;
+    public RowDifference(DifferenceType type, IRow<cell_t> row) {
+        this.type = type;
         this.row = row;
     }
 
     @Override
     public DifferenceType getDifferenceType() {
-        return operation;
+        return type;
     }
 
     @Override

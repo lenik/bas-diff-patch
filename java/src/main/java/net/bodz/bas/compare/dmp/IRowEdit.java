@@ -9,7 +9,7 @@ public interface IRowEdit<cell_t>
     @Override
     DifferenceType getDifferenceType();
 
-    void setDifferenceType(DifferenceType operation);
+    void setDifferenceType(DifferenceType type);
 
     @Override
     IMutableRow<cell_t> getRow();

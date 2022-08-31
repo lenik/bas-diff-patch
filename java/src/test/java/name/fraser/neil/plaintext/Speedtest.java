@@ -24,17 +24,17 @@ import net.bodz.bas.compare.dmp.diff_match_patch_compat;
 public class Speedtest {
 
   public static void main(String args[]) throws IOException {
-    String text1 = readFile("name/fraser/neil/plaintext/Speedtest1.txt");
-    String text2 = readFile("name/fraser/neil/plaintext/Speedtest2.txt");
+    String row1 = readFile("name/fraser/neil/plaintext/Speedtest1.txt");
+    String row2 = readFile("name/fraser/neil/plaintext/Speedtest2.txt");
 
     diff_match_patch_compat dmp = new diff_match_patch_compat();
     dmp.config.Diff_Timeout = 0;
 
     // Execute one reverse diff as a warmup.
-    dmp.diff_main(text2, text1, false);
+    dmp.diff_main(row2, row1, false);
 
     long start_time = System.nanoTime();
-    dmp.diff_main(text1, text2, false);
+    dmp.diff_main(row1, row2, false);
     long end_time = System.nanoTime();
     System.out.printf("Elapsed time: %f\n", ((end_time - start_time) / 1000000000.0));
   }
