@@ -1,6 +1,5 @@
 package net.bodz.bas.compare.dmp;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -32,22 +31,11 @@ public abstract class DMPRowComparator<cell_t>
 
     @Override
     public <T extends cell_t> EditList<cell_t> compare(IRow<T> row1, IRow<T> row2) {
-        return compare(row1, row2, false);
+        return _compare(row1, row2, false);
     }
 
-    public <T extends cell_t> EditList<cell_t> comparePacked(IRow<T> row1, IRow<T> row2) {
-        return compare(row1, row2, true);
-    }
-
-    public <T extends cell_t> EditList<cell_t> compare(IRow<T> row1, IRow<T> row2, boolean packed) {
-        // Set a deadline by which time the diff must be complete.
-        long deadline;
-        if (config.Diff_Timeout <= 0) {
-            deadline = Long.MAX_VALUE;
-        } else {
-            deadline = System.currentTimeMillis() + (long) (config.Diff_Timeout * 1000);
-        }
-        return compareImpl(row1, row2, true, deadline);
+    public <T extends cell_t> EditList<cell_t> compareByPack(IRow<T> row1, IRow<T> row2) {
+        return _compare(row1, row2, true);
     }
 
     @Override
@@ -55,15 +43,26 @@ public abstract class DMPRowComparator<cell_t>
         return compare(row1, row2);
     }
 
+    private <T extends cell_t> EditList<cell_t> _compare(IRow<T> row1, IRow<T> row2, boolean packing) {
+        // Set a deadline by which time the diff must be complete.
+        long deadline;
+        if (config.Diff_Timeout <= 0) {
+            deadline = Long.MAX_VALUE;
+        } else {
+            deadline = System.currentTimeMillis() + (long) (config.Diff_Timeout * 1000);
+        }
+        return _compare(row1, row2, true, deadline);
+    }
+
     /**
      * Find the differences between two texts. Simplifies the problem by stripping any common prefix
      * or suffix off the texts before diffing.
      *
-     * @param text1
+     * @param row1
      *            Old string to be diffed.
-     * @param text2
+     * @param row2
      *            New string to be diffed.
-     * @param checklines
+     * @param packing
      *            Speedup flag. If false, then don't run a line-level diff first to identify the
      *            changed areas. If true, then run a faster slightly less optimal diff.
      * @param deadline
@@ -71,43 +70,43 @@ public abstract class DMPRowComparator<cell_t>
      *            Users should set DiffTimeout instead.
      * @return Linked List of Diff objects.
      */
-    <T extends cell_t> EditList<cell_t> compareImpl(IRow<T> text1, IRow<T> text2, boolean checklines, long deadline) {
+    <T extends cell_t> EditList<cell_t> _compare(IRow<T> row1, IRow<T> row2, boolean packing, long deadline) {
         // Check for null inputs.
-        if (text1 == null || text2 == null) {
+        if (row1 == null || row2 == null) {
             throw new IllegalArgumentException("Null inputs. (diff_main)");
         }
 
         // Check for equality (speedup).
         EditList<cell_t> diffs;
-        if (text1.equals(text2)) {
+        if (row1.equals(row2)) {
             diffs = new EditList<cell_t>(this);
-            if (text1.length() != 0) {
-                diffs.add(new RowDifference<T>(DifferenceType.MATCH, text1));
+            if (row1.length() != 0) {
+                diffs.append(new RowDifference<T>(DifferenceType.MATCH, row1));
             }
             return diffs;
         }
 
         // Trim off common prefix (speedup).
-        int commonlength = RowUtils.commonPrefix(text1, text2);
-        IRow<T> commonprefix = text1.slice(0, commonlength);
-        text1 = text1.slice(commonlength, text1.length());
-        text2 = text2.slice(commonlength, text2.length());
+        int commonlength = RowUtils.commonPrefix(row1, row2);
+        IRow<T> commonprefix = row1.slice(0, commonlength);
+        row1 = row1.slice(commonlength, row1.length());
+        row2 = row2.slice(commonlength, row2.length());
 
         // Trim off common suffix (speedup).
-        commonlength = RowUtils.commonSuffix(text1, text2);
-        IRow<T> commonsuffix = text1.slice(text1.length() - commonlength, text1.length());
-        text1 = text1.slice(0, text1.length() - commonlength);
-        text2 = text2.slice(0, text2.length() - commonlength);
+        commonlength = RowUtils.commonSuffix(row1, row2);
+        IRow<T> commonsuffix = row1.slice(row1.length() - commonlength, row1.length());
+        row1 = row1.slice(0, row1.length() - commonlength);
+        row2 = row2.slice(0, row2.length() - commonlength);
 
         // Compute the diff on the middle block.
-        diffs = diff_compute(text1, text2, checklines, deadline);
+        diffs = compute(row1, row2, packing, deadline);
 
         // Restore the prefix and suffix.
         if (commonprefix.length() != 0) {
-            diffs.addFirst(new RowDifference<T>(DifferenceType.MATCH, commonprefix));
+            diffs.prepend(new RowDifference<T>(DifferenceType.MATCH, commonprefix));
         }
         if (commonsuffix.length() != 0) {
-            diffs.addLast(new RowDifference<T>(DifferenceType.MATCH, commonsuffix));
+            diffs.append(new RowDifference<T>(DifferenceType.MATCH, commonsuffix));
         }
 
         diffs.cleanupMerge();
@@ -118,108 +117,107 @@ public abstract class DMPRowComparator<cell_t>
      * Find the differences between two texts. Assumes that the texts do not have any common prefix
      * or suffix.
      *
-     * @param text1
+     * @param row1
      *            Old string to be diffed.
-     * @param text2
+     * @param row2
      *            New string to be diffed.
-     * @param checklines
+     * @param packing
      *            Speedup flag. If false, then don't run a line-level diff first to identify the
      *            changed areas. If true, then run a faster slightly less optimal diff.
      * @param deadline
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private <T extends cell_t> EditList<cell_t> diff_compute(IRow<T> text1, IRow<T> text2, boolean checklines,
-            long deadline) {
+    private <T extends cell_t> EditList<cell_t> compute(IRow<T> row1, IRow<T> row2, boolean packing, long deadline) {
         EditList<cell_t> diffs = new EditList<cell_t>(this);
 
-        if (text1.length() == 0) {
+        if (row1.length() == 0) {
             // Just add some text (speedup).
-            diffs.add(new RowDifference<T>(DifferenceType.INSERTION, text2));
+            diffs.append(new RowDifference<T>(DifferenceType.INSERTION, row2));
             return diffs;
         }
 
-        if (text2.length() == 0) {
+        if (row2.length() == 0) {
             // Just delete some text (speedup).
-            diffs.add(new RowDifference<T>(DifferenceType.REMOVAL, text1));
+            diffs.append(new RowDifference<T>(DifferenceType.REMOVAL, row1));
             return diffs;
         }
 
-        IRow<T> longtext = text1.length() > text2.length() ? text1 : text2;
-        IRow<T> shorttext = text1.length() > text2.length() ? text2 : text1;
-        int i = longtext.indexOf(shorttext);
-        if (i != -1) {
+        IRow<T> longtext = row1.length() > row2.length() ? row1 : row2;
+        IRow<T> shorttext = row1.length() > row2.length() ? row2 : row1;
+        int substr = longtext.indexOf(shorttext);
+        if (substr != -1) {
             // Shorter text is inside the longer text (speedup).
-            DifferenceType op = (text1.length() > text2.length()) ? DifferenceType.REMOVAL : DifferenceType.INSERTION;
-            diffs.add(new RowDifference<T>(op, longtext.slice(0, i)));
-            diffs.add(new RowDifference<T>(DifferenceType.MATCH, shorttext));
-            diffs.add(new RowDifference<T>(op, longtext.slice(i + shorttext.length(), longtext.length())));
+            DifferenceType op = (row1.length() > row2.length()) ? DifferenceType.REMOVAL : DifferenceType.INSERTION;
+            diffs.append(new RowDifference<T>(op, longtext.slice(0, substr)));
+            diffs.append(new RowDifference<T>(DifferenceType.MATCH, shorttext));
+            diffs.append(new RowDifference<T>(op, longtext.slice(substr + shorttext.length(), longtext.length())));
             return diffs;
         }
 
         if (shorttext.length() == 1) {
             // Single character string.
             // After the previous speedup, the character can't be an equality.
-            diffs.add(new RowDifference<T>(DifferenceType.REMOVAL, text1));
-            diffs.add(new RowDifference<T>(DifferenceType.INSERTION, text2));
+            diffs.append(new RowDifference<T>(DifferenceType.REMOVAL, row1));
+            diffs.append(new RowDifference<T>(DifferenceType.INSERTION, row2));
             return diffs;
         }
 
         // Check to see if the problem can be split in two.
-        HalfMatch<T> hm = RowUtils.halfMatch(config, text1, text2);
+        HalfMatch<T> hm = RowUtils.halfMatch(config, row1, row2);
         if (hm != null) {
             // A half-match was found, sort out the return data.
-            IRow<T> text1_a = hm.prefix1;
-            IRow<T> text1_b = hm.suffix1;
-            IRow<T> text2_a = hm.prefix2;
-            IRow<T> text2_b = hm.suffix2;
-            IRow<T> mid_common = hm.common;
+            IRow<T> prefix1 = hm.prefix1;
+            IRow<T> suffix1 = hm.suffix1;
+            IRow<T> prefix2 = hm.prefix2;
+            IRow<T> suffix2 = hm.suffix2;
+            IRow<T> common = hm.common;
             // Send both pairs off for separate processing.
-            EditList<cell_t> diffs_a = compareImpl(text1_a, text2_a, checklines, deadline);
-            EditList<cell_t> diffs_b = compareImpl(text1_b, text2_b, checklines, deadline);
+            EditList<cell_t> prefixDiffs = _compare(prefix1, prefix2, packing, deadline);
+            EditList<cell_t> suffixDiffs = _compare(suffix1, suffix2, packing, deadline);
             // Merge the results.
-            diffs = diffs_a;
-            diffs.add(new RowDifference<T>(DifferenceType.MATCH, mid_common));
-            diffs.addAll(diffs_b);
+            diffs = prefixDiffs;
+            diffs.append(new RowDifference<T>(DifferenceType.MATCH, common));
+            diffs.addAll(suffixDiffs);
             return diffs;
         }
 
-        if (checklines && text1.length() > 100 && text2.length() > 100) {
-            return diff_lineMode(text1, text2, deadline);
+        if (packing && row1.length() > 100 && row2.length() > 100) {
+            return _compareByPack(row1, row2, deadline);
         }
 
-        return diff_bisect(text1, text2, deadline);
+        return _bisect(row1, row2, deadline);
     }
 
     /**
      * Do a quick line-level diff on both strings, then rediff the parts for greater accuracy. This
      * speedup can produce non-minimal diffs.
      *
-     * @param text1
+     * @param row1
      *            Old string to be diffed.
-     * @param text2
+     * @param row2
      *            New string to be diffed.
      * @param deadline
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private <T extends cell_t> EditList<cell_t> diff_lineMode(IRow<T> text1, IRow<T> text2, long deadline) {
+    private <T extends cell_t> EditList<cell_t> _compareByPack(IRow<T> row1, IRow<T> row2, long deadline) {
         // Scan the text on a line-by-line basis first.
-        LinesToCharsResult<T> a = packer.pack(text1, text2);
+        LinesToCharsResult<T> a = packer.pack(row1, row2);
         List<IRow<T>> linearray = a.lineArray;
 
-        IntCharsComparator intCharsDiff = new IntCharsComparator(config);
-        LinkedList<RowEdit<Integer>> atom_diffs = //
-                intCharsDiff.compareImpl(a.chars1, a.chars2, false, deadline);
+        IntCharsComparator atomsComparator = new IntCharsComparator(config);
+        EditList<Integer> atomDiffs = //
+                atomsComparator._compare(a.chars1, a.chars2, false, deadline);
 
         // Convert the diff back to original text.
-        EditList<cell_t> diffs = packer.unpack(atom_diffs, linearray);
+        EditList<cell_t> diffs = packer.unpack(atomDiffs, linearray);
         // Eliminate freak matches (e.g. blank lines)
         diffs.cleanupSemantic();
 
         // Rediff any replacement blocks, this time character-by-character.
         // Add a dummy entry at the end.
-        diffs.add(new RowDifference<T>(DifferenceType.MATCH, Rows.<T> empty()));
+        diffs.append(new RowDifference<T>(DifferenceType.MATCH, Rows.<T> empty()));
         int count_delete = 0;
         int count_insert = 0;
         MutableRow<cell_t> text_delete = new MutableRow<cell_t>();
@@ -245,7 +243,7 @@ public abstract class DMPRowComparator<cell_t>
                         pointer.previous();
                         pointer.remove();
                     }
-                    for (RowEdit<cell_t> subDiff : compareImpl(text_delete, text_insert, false, deadline)) {
+                    for (RowEdit<cell_t> subDiff : _compare(text_delete, text_insert, false, deadline)) {
                         pointer.add(subDiff);
                     }
                 }
@@ -274,7 +272,7 @@ public abstract class DMPRowComparator<cell_t>
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    <T extends cell_t> EditList<cell_t> diff_bisect(IRow<T> text1, IRow<T> text2, long deadline) {
+    <T extends cell_t> EditList<cell_t> _bisect(IRow<T> text1, IRow<T> text2, long deadline) {
         // Cache the text lengths to prevent multiple calls.
         int text1_length = text1.length();
         int text2_length = text2.length();
@@ -333,7 +331,7 @@ public abstract class DMPRowComparator<cell_t>
                         int x2 = text1_length - v2[k2_offset];
                         if (x1 >= x2) {
                             // Overlap detected.
-                            return diff_bisectSplit(text1, text2, x1, y1, deadline);
+                            return _bisectSplit(text1, text2, x1, y1, deadline);
                         }
                     }
                 }
@@ -370,7 +368,7 @@ public abstract class DMPRowComparator<cell_t>
                         x2 = text1_length - x2;
                         if (x1 >= x2) {
                             // Overlap detected.
-                            return diff_bisectSplit(text1, text2, x1, y1, deadline);
+                            return _bisectSplit(text1, text2, x1, y1, deadline);
                         }
                     }
                 }
@@ -379,17 +377,17 @@ public abstract class DMPRowComparator<cell_t>
         // Diff took too long and hit the deadline or
         // number of diffs equals number of characters, no commonality at all.
         EditList<cell_t> diffs = new EditList<cell_t>(this);
-        diffs.add(new RowDifference<T>(DifferenceType.REMOVAL, text1));
-        diffs.add(new RowDifference<T>(DifferenceType.INSERTION, text2));
+        diffs.append(new RowDifference<T>(DifferenceType.REMOVAL, text1));
+        diffs.append(new RowDifference<T>(DifferenceType.INSERTION, text2));
         return diffs;
     }
 
     /**
      * Given the location of the 'middle snake', split the diff in two parts and recurse.
      *
-     * @param text1
+     * @param row1
      *            Old string to be diffed.
-     * @param text2
+     * @param row2
      *            New string to be diffed.
      * @param x
      *            Index of split point in text1.
@@ -399,19 +397,18 @@ public abstract class DMPRowComparator<cell_t>
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    private <T extends cell_t> EditList<cell_t> diff_bisectSplit(IRow<T> text1, IRow<T> text2, int x, int y,
-            long deadline) {
-        IRow<T> text1a = text1.slice(0, x);
-        IRow<T> text2a = text2.slice(0, y);
-        IRow<T> text1b = text1.slice(x, text1.length());
-        IRow<T> text2b = text2.slice(y, text2.length());
+    private <T extends cell_t> EditList<cell_t> _bisectSplit(IRow<T> row1, IRow<T> row2, int x, int y, long deadline) {
+        IRow<T> left1 = row1.slice(0, x);
+        IRow<T> left2 = row2.slice(0, y);
+        IRow<T> right1 = row1.slice(x, row1.length());
+        IRow<T> right2 = row2.slice(y, row2.length());
 
         // Compute both diffs serially.
-        EditList<cell_t> diffs = compareImpl(text1a, text2a, false, deadline);
-        EditList<cell_t> diffsb = compareImpl(text1b, text2b, false, deadline);
+        EditList<cell_t> leftDiffs = _compare(left1, left2, false, deadline);
+        EditList<cell_t> rightDiffs = _compare(right1, right2, false, deadline);
 
-        diffs.addAll(diffsb);
-        return diffs;
+        leftDiffs.addAll(rightDiffs);
+        return leftDiffs;
     }
 
     public RowMatcher<cell_t> matcher() {
