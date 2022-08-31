@@ -1,7 +1,6 @@
 package net.bodz.bas.compare.dmp;
 
 import net.bodz.bas.text.row.AbstractRow;
-import net.bodz.bas.text.row.Function;
 import net.bodz.bas.text.row.IMutableRow;
 import net.bodz.bas.text.row.IRow;
 
@@ -41,17 +40,9 @@ public class RowDifference<cell_t>
         return row;
     }
 
-    public RowEdit<cell_t> copy() {
-        return new RowEdit<cell_t>(operation, row.copy());
-    }
-
-    public <T> RowEdit<T> copy(Function<cell_t, T> function) {
-        return new RowEdit<T>(operation, row.copy(function));
-    }
-
-    public static <cell_t, T extends cell_t> RowEdit<cell_t> copy(RowDifference<T> change) {
-        IMutableRow<cell_t> rowCopy = AbstractRow.copy(change.row);
-        return new RowEdit<cell_t>(change.operation, rowCopy);
+    public static <cell_t, T extends cell_t> RowDifference<cell_t> copy(IRowDifference<T> diff) {
+        IMutableRow<cell_t> rowCopy = AbstractRow.copy(diff.getRow());
+        return new RowDifference<cell_t>(diff.getDifferenceType(), rowCopy);
     }
 
 }

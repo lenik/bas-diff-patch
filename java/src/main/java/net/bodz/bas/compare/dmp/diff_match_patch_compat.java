@@ -12,7 +12,7 @@ import net.bodz.bas.text.row.IRow;
 public class diff_match_patch_compat {
 
     public Config config = new Config();
-    CharsComparator diff = new CharsComparator(config);
+    CharsComparator dmp = new CharsComparator(config);
 
     _Diff conv(IRowDifference<?> diff) {
         return new _Diff(diff.getDifferenceType(), diff.getTextAsString());
@@ -23,7 +23,7 @@ public class diff_match_patch_compat {
         return new RowDifference<Character>(diff.operation, text);
     }
 
-    LinkedList<_Diff> convDiffs(List<? extends IRowDifference<Character>> o) {
+    LinkedList<_Diff> convDiffs(IDiffList<? extends IRowDifference<Character>, ?> o) {
         if (o == null)
             return null;
         LinkedList<_Diff> list = new LinkedList<_Diff>();
@@ -35,9 +35,9 @@ public class diff_match_patch_compat {
     EditList<Character> convDiffsR(List<_Diff> o) {
         if (o == null)
             return null;
-        EditList<Character> list = new EditList<Character>(diff);
+        EditList<Character> list = new EditList<Character>(dmp);
         for (_Diff item : o)
-            list.add(convR(item));
+            list.append(convR(item));
         return list;
     }
 
@@ -56,7 +56,7 @@ public class diff_match_patch_compat {
     Patch<Character> convR(_Patch patch) {
         if (patch == null)
             return null;
-        Patch<Character> a = new Patch<Character>(diff);
+        Patch<Character> a = new Patch<Character>(dmp);
         a.diffs = convDiffsR(patch.diffs);
         a.length1 = patch.length1;
         a.length2 = patch.length2;
@@ -77,7 +77,7 @@ public class diff_match_patch_compat {
     PatchList<Character> convPatchesR(List<_Patch> o) {
         if (o == null)
             return null;
-        PatchList<Character> list = new PatchList<Character>(diff);
+        PatchList<Character> list = new PatchList<Character>(dmp);
         for (_Patch item : o)
             list.add(convR(item));
         return list;
@@ -88,7 +88,7 @@ public class diff_match_patch_compat {
     }
 
     String convText(CharsView text) {
-        return text == null ? null : diff.format(text);
+        return text == null ? null : dmp.format(text);
     }
 
     List<String> convText(List<CharsView> text) {
@@ -112,19 +112,22 @@ public class diff_match_patch_compat {
     public LinkedList<_Diff> diff_main(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convDiffs(diff.compare(text1, text2, true));
+        return convDiffs(dmp.compareByPack(text1, text2));
     }
 
     public LinkedList<_Diff> diff_main(String _text1, String _text2, boolean checklines) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convDiffs(diff.compare(text1, text2, checklines));
+        if (checklines)
+            return convDiffs(dmp.compareByPack(text1, text2));
+        else
+            return convDiffs(dmp.compare(text1, text2));
     }
 
     public LinkedList<_Diff> diff_bisect(String _text1, String _text2, long deadline) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convDiffs(diff.diff_bisect(text1, text2, deadline));
+        return convDiffs(dmp._bisect(text1, text2, deadline));
     }
 
     IntCharsComparator INT_CHARS = new IntCharsComparator(config);
@@ -132,10 +135,10 @@ public class diff_match_patch_compat {
     protected _LinesToCharsResult diff_linesToChars(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        LinesToCharsResult<Character> result = diff.packer.pack(text1, text2);
+        LinesToCharsResult<Character> result = dmp.packer.pack(text1, text2);
         List<String> lineArray = new ArrayList<String>();
         for (IRow<Character> line : result.lineArray)
-            lineArray.add(diff.format(line));
+            lineArray.add(dmp.format(line));
 
         return new _LinesToCharsResult( //
                 INT_CHARS.format(result.chars1), //
@@ -167,45 +170,45 @@ public class diff_match_patch_compat {
         HalfMatch<Character> hm = RowUtils.halfMatch(config, text1, text2);
         return hm == null ? null
                 : new String[] { //
-                        diff.format(hm.prefix1), //
-                        diff.format(hm.suffix1), //
-                        diff.format(hm.prefix2), //
-                        diff.format(hm.suffix2), //
-                        diff.format(hm.common), //
+                        dmp.format(hm.prefix1), //
+                        dmp.format(hm.suffix1), //
+                        dmp.format(hm.prefix2), //
+                        dmp.format(hm.suffix2), //
+                        dmp.format(hm.common), //
                 };
     }
 
     public String diff_text1(List<_Diff> _diffs) {
         EditList<Character> diffs = convDiffsR(_diffs);
-        return diff.format(diffs.restoreRow1());
+        return dmp.format(diffs.restoreRow1());
     }
 
     public String diff_text2(List<_Diff> _diffs) {
         EditList<Character> diffs = convDiffsR(_diffs);
-        return diff.format(diffs.restoreRow2());
+        return dmp.format(diffs.restoreRow2());
     }
 
     public LinkedList<_Diff> diff_fromDelta(String _text1, String delta)
             throws IllegalArgumentException {
         CharsView text1 = convText(_text1);
-        return convDiffs(EditList.fromDelta(diff, text1, delta));
+        return convDiffs(EditList.fromDelta(dmp, text1, delta));
     }
 
     public int match_main(String _text, String _pattern, int loc) {
         CharsView text = convText(_text);
         CharsView pattern = convText(_pattern);
-        return diff.matcher().search(text, pattern, loc);
+        return dmp.matcher().search(text, pattern, loc);
     }
 
     protected int match_bitap(String _text, String _pattern, int loc) {
         CharsView text = convText(_text);
         CharsView pattern = convText(_pattern);
-        return diff.matcher().bitap(text, pattern, loc);
+        return dmp.matcher().bitap(text, pattern, loc);
     }
 
     protected Map<Character, Integer> match_alphabet(String _pattern) {
         CharsView pattern = convText(_pattern);
-        return diff.matcher().alphabet(pattern);
+        return dmp.matcher().alphabet(pattern);
     }
 
     protected void patch_addContext(_Patch _patch, String _text) {
@@ -219,7 +222,7 @@ public class diff_match_patch_compat {
     public LinkedList<_Patch> patch_make(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        return convPatches(diff.compare(text1, text2).createPatch(text1));
+        return convPatches(dmp.compare(text1, text2).createPatch(text1));
     }
 
     public LinkedList<_Patch> patch_make(String _text1, LinkedList<_Diff> _diffs) {
@@ -233,7 +236,7 @@ public class diff_match_patch_compat {
         CharsView text = convText(_text);
         PatchApplyResult<Character> result = convPatchesR(patches).apply(text);
         boolean[] bools = ((BoolsView) result.results).toBooleanArray();
-        return new Object[] { diff.format(result.row), bools };
+        return new Object[] { dmp.format(result.row), bools };
     }
 
     public String patch_addPadding(LinkedList<_Patch> _patches) {
@@ -242,7 +245,7 @@ public class diff_match_patch_compat {
         LinkedList<_Patch> _patches2 = convPatches(patches);
         _patches.clear();
         _patches.addAll(_patches2);
-        return diff.format(retval);
+        return dmp.format(retval);
     }
 
     protected static class _LinesToCharsResult {
@@ -495,7 +498,7 @@ public class diff_match_patch_compat {
 
     public List<_Patch> patch_fromText(String patchcode)
             throws IllegalArgumentException {
-        return convPatches(PatchList.fromText(diff, patchcode));
+        return convPatches(PatchList.fromText(dmp, patchcode));
     }
 
 }

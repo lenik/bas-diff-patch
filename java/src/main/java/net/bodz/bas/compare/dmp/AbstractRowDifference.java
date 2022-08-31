@@ -1,10 +1,21 @@
 package net.bodz.bas.compare.dmp;
 
+import net.bodz.bas.text.row.Function;
 import net.bodz.bas.text.row.IRow;
 
 public abstract class AbstractRowDifference<cell_t>
         implements
             IRowDifference<cell_t> {
+
+    @Override
+    public RowEdit<cell_t> copy() {
+        return new RowEdit<cell_t>(getDifferenceType(), getRow().copy());
+    }
+
+    @Override
+    public <T> RowEdit<T> copy(Function<cell_t, T> function) {
+        return new RowEdit<T>(getDifferenceType(), getRow().copy(function));
+    }
 
     public String getTextAsString() {
         IRow<cell_t> row = getRow();

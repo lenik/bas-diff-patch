@@ -40,7 +40,7 @@ public class PatchList<cell_t>
             Patch<cell_t> patchCopy = new Patch<cell_t>(diff);
             for (RowEdit<cell_t> aDiff : aPatch.diffs) {
                 RowEdit<cell_t> diffCopy = new RowEdit<cell_t>(aDiff.operation, aDiff.row);
-                patchCopy.diffs.add(diffCopy);
+                patchCopy.diffs.append(diffCopy);
             }
             patchCopy.start1 = aPatch.start1;
             patchCopy.start2 = aPatch.start2;
@@ -125,7 +125,7 @@ public class PatchList<cell_t>
                 } else {
                     // Imperfect match. Run a diff to get a framework of equivalent
                     // indices.
-                    EditList<cell_t> diffs = diff.compare(text1, text2, false);
+                    EditList<cell_t> diffs = diff.compare(text1, text2);
                     if (text1.length() > config.Match_MaxBits
                             && diffs.levenshtein() / (float) text1.length() > config.Patch_DeleteThreshold) {
                         // The end points match, but the content is unacceptably bad.
@@ -186,7 +186,7 @@ public class PatchList<cell_t>
         EditList<cell_t> diffs = patch.diffs;
         if (diffs.isEmpty() || diffs.getFirst().operation != DifferenceType.MATCH) {
             // Add nullPadding equality.
-            diffs.addFirst(new RowDifference<cell_t>(DifferenceType.MATCH, nullPadding));
+            diffs.prepend(new RowDifference<cell_t>(DifferenceType.MATCH, nullPadding));
             patch.start1 -= paddingLength; // Should be 0.
             patch.start2 -= paddingLength; // Should be 0.
             patch.length1 += paddingLength;
@@ -207,7 +207,7 @@ public class PatchList<cell_t>
         diffs = patch.diffs;
         if (diffs.isEmpty() || diffs.getLast().operation != DifferenceType.MATCH) {
             // Add nullPadding equality.
-            diffs.addLast(new RowDifference<cell_t>(DifferenceType.MATCH, nullPadding));
+            diffs.append(new RowDifference<cell_t>(DifferenceType.MATCH, nullPadding));
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
         } else if (paddingLength > diffs.getLast().row.length()) {
@@ -257,7 +257,7 @@ public class PatchList<cell_t>
                 patch.start2 = start2 - precontext.length();
                 if (precontext.length() != 0) {
                     patch.length1 = patch.length2 = precontext.length();
-                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.MATCH, precontext));
+                    patch.diffs.append(new RowDifference<cell_t>(DifferenceType.MATCH, precontext));
                 }
                 while (!bigpatch.diffs.isEmpty() && patch.length1 < patch_size - config.Patch_Margin) {
                     diff_type = bigpatch.diffs.getFirst().operation;
@@ -266,7 +266,7 @@ public class PatchList<cell_t>
                         // Insertions are harmless.
                         patch.length2 += diff_text.length();
                         start2 += diff_text.length();
-                        patch.diffs.addLast(bigpatch.diffs.removeFirst());
+                        patch.diffs.append(bigpatch.diffs.removeFirst());
                         empty = false;
                     } else if (diff_type == DifferenceType.REMOVAL && patch.diffs.size() == 1
                             && patch.diffs.getFirst().operation == DifferenceType.MATCH
@@ -275,7 +275,7 @@ public class PatchList<cell_t>
                         patch.length1 += diff_text.length();
                         start1 += diff_text.length();
                         empty = false;
-                        patch.diffs.add(new RowDifference<cell_t>(diff_type, diff_text));
+                        patch.diffs.append(new RowDifference<cell_t>(diff_type, diff_text));
                         bigpatch.diffs.removeFirst();
                     } else {
                         // Deletion or equality. Only take as much as we can stomach.
@@ -289,7 +289,7 @@ public class PatchList<cell_t>
                         } else {
                             empty = false;
                         }
-                        patch.diffs.add(new RowDifference<cell_t>(diff_type, diff_text));
+                        patch.diffs.append(new RowDifference<cell_t>(diff_type, diff_text));
                         if (diff_text.equals(bigpatch.diffs.getFirst().row)) {
                             bigpatch.diffs.removeFirst();
                         } else {
@@ -312,7 +312,7 @@ public class PatchList<cell_t>
                     if (!patch.diffs.isEmpty() && patch.diffs.getLast().operation == DifferenceType.MATCH) {
                         patch.diffs.getLast().row = patch.diffs.getLast().row.concat(postcontext);
                     } else {
-                        patch.diffs.add(new RowDifference<cell_t>(DifferenceType.MATCH, postcontext));
+                        patch.diffs.append(new RowDifference<cell_t>(DifferenceType.MATCH, postcontext));
                     }
                 }
                 if (!empty) {
@@ -413,13 +413,13 @@ public class PatchList<cell_t>
                 IRow<cell_t> textline = diff.parse(codeline);
                 if (sign == '-') {
                     // Deletion.
-                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.REMOVAL, textline));
+                    patch.diffs.append(new RowDifference<cell_t>(DifferenceType.REMOVAL, textline));
                 } else if (sign == '+') {
                     // Insertion.
-                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.INSERTION, textline));
+                    patch.diffs.append(new RowDifference<cell_t>(DifferenceType.INSERTION, textline));
                 } else if (sign == ' ') {
                     // Minor equality.
-                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.MATCH, textline));
+                    patch.diffs.append(new RowDifference<cell_t>(DifferenceType.MATCH, textline));
                 } else if (sign == '@') {
                     // Start of next patch.
                     break;

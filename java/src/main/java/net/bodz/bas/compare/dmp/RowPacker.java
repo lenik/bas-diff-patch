@@ -104,7 +104,7 @@ public class RowPacker<cell_t> {
      * @param packArray
      *            List of unique strings.
      */
-    public <T extends cell_t> EditList<cell_t> unpack(List<? extends IRowDifference<Integer>> changes,
+    public <T extends cell_t> EditList<cell_t> unpack(IDiffList<? extends IRowDifference<Integer>, Integer> changes,
             List<IRow<T>> packArray) {
         EditList<cell_t> result = new EditList<cell_t>(diff);
         for (IRowDifference<Integer> change : changes) {
@@ -114,7 +114,7 @@ public class RowPacker<cell_t> {
                 Integer index = atoms.cellAt(j);
                 expansion.append(packArray.get(index));
             }
-            result.add(new RowDifference<T>(change.getDifferenceType(), expansion));
+            result.append(new RowDifference<T>(change.getDifferenceType(), expansion));
         }
         return result;
     }

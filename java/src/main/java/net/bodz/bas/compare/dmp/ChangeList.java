@@ -5,10 +5,18 @@ import net.bodz.bas.text.row.IRow;
 public class ChangeList<cell_t>
         extends AbstractDiffList<RowDifference<cell_t>, cell_t> {
 
-    private static final long serialVersionUID = 1L;
-
     public ChangeList(DMPRowComparator<cell_t> dmp) {
         super(dmp);
+    }
+
+    @Override
+    public <T extends cell_t> void prepend(IRowDifference<T> o) {
+        list.addFirst(RowDifference.<cell_t, T> copy(o));
+    }
+
+    @Override
+    public <T extends cell_t> void append(IRowDifference<T> o) {
+        list.addLast(RowDifference.<cell_t, T> copy(o));
     }
 
     @Override

@@ -61,13 +61,13 @@ public class Patch<cell_t> {
         // Add the prefix.
         IRow<cell_t> prefix = text.slice(Math.max(0, this.start2 - padding), this.start2);
         if (prefix.length() != 0) {
-            this.diffs.addFirst(new RowDifference<cell_t>(DifferenceType.MATCH, prefix));
+            this.diffs.prepend(new RowDifference<cell_t>(DifferenceType.MATCH, prefix));
         }
         // Add the suffix.
         IRow<cell_t> suffix = text.slice(this.start2 + this.length1,
                 Math.min(text.length(), this.start2 + this.length1 + padding));
         if (suffix.length() != 0) {
-            this.diffs.addLast(new RowDifference<cell_t>(DifferenceType.MATCH, suffix));
+            this.diffs.append(new RowDifference<cell_t>(DifferenceType.MATCH, suffix));
         }
 
         // Roll back the start points.

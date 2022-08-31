@@ -2,24 +2,82 @@ package net.bodz.bas.compare.dmp;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.ListIterator;
 
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.MutableRow;
 
 public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
-        extends LinkedList<diff_t>
         implements
             IDiffList<diff_t, cell_t> {
-
-    private static final long serialVersionUID = 1L;
 
     Config config;
     DMPRowComparator<cell_t> dmp;
 
+    protected LinkedList<diff_t> list = new LinkedList<diff_t>();
+
     public AbstractDiffList(DMPRowComparator<cell_t> dmp) {
         this.config = dmp.config;
         this.dmp = dmp;
+    }
+
+    @Override
+    public Iterator<diff_t> iterator() {
+        return list.iterator();
+    }
+
+    @Override
+    public ListIterator<diff_t> listIterator() {
+        return list.listIterator();
+    }
+
+    @Override
+    public int size() {
+        return list.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return list.isEmpty();
+    }
+
+    @Override
+    public diff_t getFirst() {
+        return list.getFirst();
+    }
+
+    @Override
+    public diff_t getLast() {
+        return list.getLast();
+    }
+
+    @Override
+    public diff_t removeFirst() {
+        return list.removeFirst();
+    }
+
+    @Override
+    public diff_t removeLast() {
+        return list.removeLast();
+    }
+
+    @Override
+    public void add(diff_t diff) {
+        list.add(diff);
+    }
+
+    @Override
+    public void addAll(Collection<? extends diff_t> diffs) {
+        list.addAll(diffs);
+    }
+
+    @Override
+    public void addAll(IDiffList<? extends diff_t, ? extends cell_t> diffs) {
+        for (diff_t diff : diffs)
+            list.add(diff);
     }
 
     /**
@@ -235,7 +293,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
                     throw new IllegalArgumentException("Illegal escape in diff_fromDelta: " + param, e);
                 }
                 IRow<cell_t> line = dmp.parse(param);
-                this.add(createDifference(DifferenceType.INSERTION, line, true));
+                list.add(createDifference(DifferenceType.INSERTION, line, true));
                 break;
             case '-':
                 // Fall through.
@@ -258,9 +316,9 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
                             e);
                 }
                 if (token.charAt(0) == '=') {
-                    this.add(createDifference(DifferenceType.MATCH, text));
+                    list.add(createDifference(DifferenceType.MATCH, text));
                 } else {
-                    this.add(createDifference(DifferenceType.REMOVAL, text));
+                    list.add(createDifference(DifferenceType.REMOVAL, text));
                 }
                 break;
             default:

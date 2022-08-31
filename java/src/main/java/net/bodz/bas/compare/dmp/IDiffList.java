@@ -1,8 +1,37 @@
 package net.bodz.bas.compare.dmp;
 
+import java.util.Collection;
+import java.util.ListIterator;
+
 import net.bodz.bas.text.row.IRow;
 
-public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t> {
+public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
+        extends
+            Iterable<diff_t> {
+
+    int size();
+
+    boolean isEmpty();
+
+    ListIterator<diff_t> listIterator();
+
+    diff_t getFirst();
+
+    diff_t getLast();
+
+    diff_t removeFirst();
+
+    diff_t removeLast();
+
+    void addAll(Collection<? extends diff_t> diffs);
+
+    void addAll(IDiffList<? extends diff_t, ? extends cell_t> diffs);
+
+    void add(diff_t diff);
+
+    <T extends cell_t> void prepend(IRowDifference<T> diff);
+
+    <T extends cell_t> void append(IRowDifference<T> diff);
 
     /**
      * loc is a location in text1, compute and return the equivalent location in text2. e.g. "The

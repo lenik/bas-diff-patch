@@ -12,22 +12,18 @@ import net.bodz.bas.text.row.MutableRow;
 public class EditList<cell_t>
         extends AbstractDiffList<RowEdit<cell_t>, cell_t> {
 
-    private static final long serialVersionUID = 1L;
-
     public EditList(DMPRowComparator<cell_t> dmp) {
         super(dmp);
     }
 
-    public <T extends cell_t> void add(RowDifference<T> o) {
-        super.add(RowDifference.<cell_t, T> copy(o));
+    @Override
+    public <T extends cell_t> void prepend(IRowDifference<T> o) {
+        list.addFirst(RowEdit.<cell_t, T> copy(o));
     }
 
-    public <T extends cell_t> void addFirst(RowDifference<T> o) {
-        super.addFirst(RowDifference.<cell_t, T> copy(o));
-    }
-
-    public <T extends cell_t> void addLast(RowDifference<T> o) {
-        super.addLast(RowDifference.<cell_t, T> copy(o));
+    @Override
+    public <T extends cell_t> void append(IRowDifference<T> o) {
+        list.addLast(RowEdit.<cell_t, T> copy(o));
     }
 
     /**
