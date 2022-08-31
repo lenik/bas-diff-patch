@@ -5,12 +5,12 @@ import net.bodz.bas.text.LinesText.Builder;
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.StringRow;
 
-public class LinesDiff
-        extends DMPDiff<String> {
+public class LinesComparator
+        extends DMPRowComparator<String> {
 
     boolean useUnicodeFormFeed = false;
 
-    public LinesDiff(Config config) {
+    public LinesComparator(Config config) {
         super(config);
     }
 

@@ -5,36 +5,37 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import net.bodz.bas.text.row.BoolsView;
 import net.bodz.bas.text.row.CharsView;
 import net.bodz.bas.text.row.IRow;
 
 public class diff_match_patch_compat {
 
     public Config config = new Config();
-    CharsDiff diff = new CharsDiff(config);
+    CharsComparator diff = new CharsComparator(config);
 
-    _Diff conv(RowChangement<?> diff) {
-        return new _Diff(diff.operation, diff.getTextAsString());
+    _Diff conv(IRowDifference<?> diff) {
+        return new _Diff(diff.getDifferenceType(), diff.getTextAsString());
     }
 
-    RowChangement<Character> convR(_Diff diff) {
+    RowDifference<Character> convR(_Diff diff) {
         CharsView text = convText(diff.text);
-        return new RowChangement<Character>(diff.operation, text);
+        return new RowDifference<Character>(diff.operation, text);
     }
 
-    LinkedList<_Diff> convDiffs(List<RowChangement<Character>> o) {
+    LinkedList<_Diff> convDiffs(List<? extends IRowDifference<Character>> o) {
         if (o == null)
             return null;
         LinkedList<_Diff> list = new LinkedList<_Diff>();
-        for (RowChangement<Character> item : o)
+        for (IRowDifference<Character> item : o)
             list.add(conv(item));
         return list;
     }
 
-    ChangeList<Character> convDiffsR(List<_Diff> o) {
+    EditList<Character> convDiffsR(List<_Diff> o) {
         if (o == null)
             return null;
-        ChangeList<Character> list = new ChangeList<Character>(diff);
+        EditList<Character> list = new EditList<Character>(diff);
         for (_Diff item : o)
             list.add(convR(item));
         return list;
@@ -126,7 +127,7 @@ public class diff_match_patch_compat {
         return convDiffs(diff.diff_bisect(text1, text2, deadline));
     }
 
-    IntCharsDiff INT_CHARS = new IntCharsDiff(config);
+    IntCharsComparator INT_CHARS = new IntCharsComparator(config);
 
     protected _LinesToCharsResult diff_linesToChars(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
@@ -175,19 +176,19 @@ public class diff_match_patch_compat {
     }
 
     public String diff_text1(List<_Diff> _diffs) {
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         return diff.format(diffs.restoreRow1());
     }
 
     public String diff_text2(List<_Diff> _diffs) {
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         return diff.format(diffs.restoreRow2());
     }
 
     public LinkedList<_Diff> diff_fromDelta(String _text1, String delta)
             throws IllegalArgumentException {
         CharsView text1 = convText(_text1);
-        return convDiffs(ChangeList.fromDelta(diff, text1, delta));
+        return convDiffs(EditList.fromDelta(diff, text1, delta));
     }
 
     public int match_main(String _text, String _pattern, int loc) {
@@ -223,7 +224,7 @@ public class diff_match_patch_compat {
 
     public LinkedList<_Patch> patch_make(String _text1, LinkedList<_Diff> _diffs) {
         CharsView text1 = convText(_text1);
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         PatchList<Character> patches = diffs.createPatch(text1);
         return convPatches(patches);
     }
@@ -231,7 +232,8 @@ public class diff_match_patch_compat {
     public Object[] patch_apply(LinkedList<_Patch> patches, String _text) {
         CharsView text = convText(_text);
         PatchApplyResult<Character> result = convPatchesR(patches).apply(text);
-        return new Object[] { diff.format(result.row), result.results };
+        boolean[] bools = ((BoolsView) result.results).toBooleanArray();
+        return new Object[] { diff.format(result.row), bools };
     }
 
     public String patch_addPadding(LinkedList<_Patch> _patches) {
@@ -263,7 +265,7 @@ public class diff_match_patch_compat {
         /**
          * One of: INSERT, DELETE or EQUAL.
          */
-        public Operation operation;
+        public DifferenceType operation;
         /**
          * The text associated with this diff operation.
          */
@@ -279,7 +281,7 @@ public class diff_match_patch_compat {
          * @param text
          *            The text being applied.
          */
-        public _Diff(Operation operation, String text) {
+        public _Diff(DifferenceType operation, String text) {
             // Construct a diff with the specified operation and text.
             this.operation = operation;
             this.text = text;
@@ -395,13 +397,13 @@ public class diff_match_patch_compat {
             // Escape the body of the patch with %xx notation.
             for (_Diff aDiff : this.diffs) {
                 switch (aDiff.operation) {
-                case INSERT:
+                case INSERTION:
                     text.append('+');
                     break;
-                case DELETE:
+                case REMOVAL:
                     text.append('-');
                     break;
-                case EQUAL:
+                case MATCH:
                     text.append(' ');
                     break;
                 }
@@ -423,7 +425,7 @@ public class diff_match_patch_compat {
     }
 
     public void diff_cleanupSemantic(LinkedList<_Diff> _diffs) {
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         diffs.cleanupSemantic();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
@@ -431,7 +433,7 @@ public class diff_match_patch_compat {
     }
 
     public void diff_cleanupSemanticLossless(LinkedList<_Diff> _diffs) {
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         diffs.cleanupSemanticLossless();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
@@ -439,7 +441,7 @@ public class diff_match_patch_compat {
     }
 
     public void diff_cleanupEfficiency(LinkedList<_Diff> _diffs) {
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         diffs.cleanupEfficiency();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
@@ -447,7 +449,7 @@ public class diff_match_patch_compat {
     }
 
     public void diff_cleanupMerge(LinkedList<_Diff> _diffs) {
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         diffs.cleanupMerge();
         LinkedList<_Diff> _diffs2 = convDiffs(diffs);
         _diffs.clear();
@@ -471,7 +473,7 @@ public class diff_match_patch_compat {
     }
 
     public LinkedList<_Patch> patch_make(LinkedList<_Diff> _diffs) {
-        ChangeList<Character> diffs = convDiffsR(_diffs);
+        EditList<Character> diffs = convDiffsR(_diffs);
         return convPatches(diffs.createPatch());
     }
 

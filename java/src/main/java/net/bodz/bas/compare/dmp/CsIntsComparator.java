@@ -8,12 +8,12 @@ import net.bodz.bas.text.row.IntegerRow;
 /**
  * Comma-separated Integers
  */
-public class CsIntsDiff
-        extends DMPDiff<Integer> {
+public class CsIntsComparator
+        extends DMPRowComparator<Integer> {
 
     public static final int SEP = -1;
 
-    public CsIntsDiff(Config config) {
+    public CsIntsComparator(Config config) {
         super(config);
     }
 

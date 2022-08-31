@@ -2,51 +2,17 @@ package net.bodz.bas.compare.dmp;
 
 import net.bodz.bas.text.row.IRow;
 
-/**
- * Class representing one diff operation.
- */
-public class RowChangement<cell_t> {
-
-    /**
-     * One of: INSERT, DELETE or EQUAL.
-     */
-    public Operation operation;
-
-    /**
-     * The text associated with this diff operation.
-     */
-    public IRow<cell_t> row;
-
-    public boolean atom;
-
-    /**
-     * Constructor. Initializes the diff with the provided values.
-     *
-     * @param operation
-     *            One of INSERT, DELETE or EQUAL.
-     * @param row
-     *            The text being applied.
-     */
-    public RowChangement(Operation operation, IRow<cell_t> row) {
-        this(operation, row, false);
-    }
-
-    public RowChangement(Operation operation, IRow<cell_t> row, boolean atom) {
-        // Construct a diff with the specified operation and text.
-        this.operation = operation;
-        this.row = row;
-        this.atom = atom;
-    }
+public abstract class AbstractRowDifference<cell_t>
+        implements
+            IRowDifference<cell_t> {
 
     public String getTextAsString() {
+        IRow<cell_t> row = getRow();
         int n = row.length();
         StringBuilder buf = new StringBuilder(n * 100);
         for (int i = 0; i < n; i++) {
-            cell_t line = row.cellAt(i);
-            if (atom)
-                buf.append((char) ((Integer) line).intValue());
-            else
-                buf.append(line);
+            cell_t cell = row.cellAt(i);
+            buf.append(cell);
         }
         return buf.toString();
     }
@@ -59,7 +25,7 @@ public class RowChangement<cell_t> {
     @Override
     public String toString() {
         String prettyText = getTextAsString().replace('\n', '\u00b6');
-        return "Diff(" + this.operation + ",\"" + prettyText + "\")";
+        return "Diff(" + this.getDifferenceType() + ",\"" + prettyText + "\")";
     }
 
     /**
@@ -70,7 +36,9 @@ public class RowChangement<cell_t> {
     @Override
     public int hashCode() {
         final int prime = 31;
+        DifferenceType operation = getDifferenceType();
         int result = (operation == null) ? 0 : operation.hashCode();
+        IRow<cell_t> row = getRow();
         result += prime * ((row == null) ? 0 : row.hashCode());
         return result;
     }
@@ -93,17 +61,22 @@ public class RowChangement<cell_t> {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        RowChangement<?> other = (RowChangement<?>) obj;
-        if (operation != other.operation) {
+        AbstractRowDifference<?> other = (AbstractRowDifference<?>) obj;
+        DifferenceType operation1 = getDifferenceType();
+        DifferenceType operation2 = other.getDifferenceType();
+        if (operation1 != operation2) {
             return false;
         }
-        if (row == null) {
-            if (other.row != null) {
+        IRow<cell_t> row1 = getRow();
+        IRow<?> row2 = other.getRow();
+        if (row1 == null) {
+            if (row2 != null) {
                 return false;
             }
-        } else if (!row.equals(other.row)) {
+        } else if (!row1.equals(row2)) {
             return false;
         }
         return true;
     }
+
 }

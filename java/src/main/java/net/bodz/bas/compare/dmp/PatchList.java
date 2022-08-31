@@ -18,10 +18,10 @@ public class PatchList<cell_t>
     private static final long serialVersionUID = 1L;
 
     Config config;
-    DMPDiff<cell_t> diff;
+    DMPRowComparator<cell_t> diff;
     RowMatcher<cell_t> matcher;
 
-    public PatchList(DMPDiff<cell_t> diff) {
+    public PatchList(DMPRowComparator<cell_t> diff) {
         this.config = diff.config;
         this.diff = diff;
         this.matcher = new RowMatcher<cell_t>(config);
@@ -38,8 +38,8 @@ public class PatchList<cell_t>
         PatchList<cell_t> patchesCopy = new PatchList<cell_t>(diff);
         for (Patch<cell_t> aPatch : this) {
             Patch<cell_t> patchCopy = new Patch<cell_t>(diff);
-            for (RowChangement<cell_t> aDiff : aPatch.diffs) {
-                RowChangement<cell_t> diffCopy = new RowChangement<cell_t>(aDiff.operation, aDiff.row);
+            for (RowEdit<cell_t> aDiff : aPatch.diffs) {
+                RowEdit<cell_t> diffCopy = new RowEdit<cell_t>(aDiff.operation, aDiff.row);
                 patchCopy.diffs.add(diffCopy);
             }
             patchCopy.start1 = aPatch.start1;
@@ -121,12 +121,11 @@ public class PatchList<cell_t>
                 }
                 if (text1.equals(text2)) {
                     // Perfect match, just shove the replacement text in.
-                    buf = buf.slice(0, start_loc).concat(aPatch.diffs.restoreRow2())
-                            .concat(buf.slice(start_loc + text1.length()));
+                    buf.replace(start_loc, start_loc + text1.length(), aPatch.diffs.restoreRow2());
                 } else {
                     // Imperfect match. Run a diff to get a framework of equivalent
                     // indices.
-                    ChangeList<cell_t> diffs = diff.compare(text1, text2, false);
+                    EditList<cell_t> diffs = diff.compare(text1, text2, false);
                     if (text1.length() > config.Match_MaxBits
                             && diffs.levenshtein() / (float) text1.length() > config.Patch_DeleteThreshold) {
                         // The end points match, but the content is unacceptably bad.
@@ -134,21 +133,19 @@ public class PatchList<cell_t>
                     } else {
                         diffs.cleanupSemanticLossless();
                         int index1 = 0;
-                        for (RowChangement<cell_t> aDiff : aPatch.diffs) {
-                            if (aDiff.operation != Operation.EQUAL) {
+                        for (RowEdit<cell_t> aDiff : aPatch.diffs) {
+                            if (aDiff.operation != DifferenceType.MATCH) {
                                 int index2 = diffs.xIndex(index1);
-                                if (aDiff.operation == Operation.INSERT) {
+                                if (aDiff.operation == DifferenceType.INSERTION) {
                                     // Insertion
-                                    ＸＸＸ
-                                    buf = buf.slice(0, start_loc + index2).concat(aDiff.row)
-                                            .concat(buf.slice(start_loc + index2));
-                                } else if (aDiff.operation == Operation.DELETE) {
+                                    buf.insert(start_loc + index2, aDiff.row);
+                                } else if (aDiff.operation == DifferenceType.REMOVAL) {
                                     // Deletion
-                                    buf = buf.slice(0, start_loc + index2)
-                                            .concat(buf.slice(start_loc + diffs.xIndex(index1 + aDiff.row.length())));
+                                    buf.delete(start_loc + index2,
+                                            start_loc + diffs.xIndex(index1 + aDiff.row.length()));
                                 }
                             }
-                            if (aDiff.operation != Operation.DELETE) {
+                            if (aDiff.operation != DifferenceType.REMOVAL) {
                                 index1 += aDiff.row.length();
                             }
                         }
@@ -158,7 +155,7 @@ public class PatchList<cell_t>
             x++;
         }
         // Strip the padding off.
-        buf = buf.slice(nullPadding.length(), buf.length() - nullPadding.length());
+        buf.preserve(nullPadding.length(), buf.length() - nullPadding.length());
         return new PatchApplyResult<cell_t>(buf, results);
     }
 
@@ -186,17 +183,17 @@ public class PatchList<cell_t>
 
         // Add some padding on start of first diff.
         Patch<cell_t> patch = this.getFirst();
-        ChangeList<cell_t> diffs = patch.diffs;
-        if (diffs.isEmpty() || diffs.getFirst().operation != Operation.EQUAL) {
+        EditList<cell_t> diffs = patch.diffs;
+        if (diffs.isEmpty() || diffs.getFirst().operation != DifferenceType.MATCH) {
             // Add nullPadding equality.
-            diffs.addFirst(new RowChangement<cell_t>(Operation.EQUAL, nullPadding));
+            diffs.addFirst(new RowDifference<cell_t>(DifferenceType.MATCH, nullPadding));
             patch.start1 -= paddingLength; // Should be 0.
             patch.start2 -= paddingLength; // Should be 0.
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
         } else if (paddingLength > diffs.getFirst().row.length()) {
             // Grow first equality.
-            RowChangement<cell_t> firstDiff = diffs.getFirst();
+            RowEdit<cell_t> firstDiff = diffs.getFirst();
             int extraLength = paddingLength - firstDiff.row.length();
             firstDiff.row = nullPadding.slice(firstDiff.row.length()).concat(firstDiff.row);
             patch.start1 -= extraLength;
@@ -208,14 +205,14 @@ public class PatchList<cell_t>
         // Add some padding on end of last diff.
         patch = this.getLast();
         diffs = patch.diffs;
-        if (diffs.isEmpty() || diffs.getLast().operation != Operation.EQUAL) {
+        if (diffs.isEmpty() || diffs.getLast().operation != DifferenceType.MATCH) {
             // Add nullPadding equality.
-            diffs.addLast(new RowChangement<cell_t>(Operation.EQUAL, nullPadding));
+            diffs.addLast(new RowDifference<cell_t>(DifferenceType.MATCH, nullPadding));
             patch.length1 += paddingLength;
             patch.length2 += paddingLength;
         } else if (paddingLength > diffs.getLast().row.length()) {
             // Grow last equality.
-            RowChangement<cell_t> lastDiff = diffs.getLast();
+            RowEdit<cell_t> lastDiff = diffs.getLast();
             int extraLength = paddingLength - lastDiff.row.length();
             lastDiff.row = lastDiff.row.concat(nullPadding.slice(0, extraLength));
             patch.length1 += extraLength;
@@ -238,7 +235,7 @@ public class PatchList<cell_t>
         Patch<cell_t> patch;
         int start1, start2;
         boolean empty;
-        Operation diff_type;
+        DifferenceType diff_type;
         IRow<cell_t> diff_text;
         ListIterator<Patch<cell_t>> pointer = this.listIterator();
         Patch<cell_t> bigpatch = pointer.hasNext() ? pointer.next() : null;
@@ -260,25 +257,25 @@ public class PatchList<cell_t>
                 patch.start2 = start2 - precontext.length();
                 if (precontext.length() != 0) {
                     patch.length1 = patch.length2 = precontext.length();
-                    patch.diffs.add(new RowChangement<cell_t>(Operation.EQUAL, precontext));
+                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.MATCH, precontext));
                 }
                 while (!bigpatch.diffs.isEmpty() && patch.length1 < patch_size - config.Patch_Margin) {
                     diff_type = bigpatch.diffs.getFirst().operation;
                     diff_text = bigpatch.diffs.getFirst().row;
-                    if (diff_type == Operation.INSERT) {
+                    if (diff_type == DifferenceType.INSERTION) {
                         // Insertions are harmless.
                         patch.length2 += diff_text.length();
                         start2 += diff_text.length();
                         patch.diffs.addLast(bigpatch.diffs.removeFirst());
                         empty = false;
-                    } else if (diff_type == Operation.DELETE && patch.diffs.size() == 1
-                            && patch.diffs.getFirst().operation == Operation.EQUAL
+                    } else if (diff_type == DifferenceType.REMOVAL && patch.diffs.size() == 1
+                            && patch.diffs.getFirst().operation == DifferenceType.MATCH
                             && diff_text.length() > 2 * patch_size) {
                         // This is a large deletion. Let it pass in one chunk.
                         patch.length1 += diff_text.length();
                         start1 += diff_text.length();
                         empty = false;
-                        patch.diffs.add(new RowChangement<cell_t>(diff_type, diff_text));
+                        patch.diffs.add(new RowDifference<cell_t>(diff_type, diff_text));
                         bigpatch.diffs.removeFirst();
                     } else {
                         // Deletion or equality. Only take as much as we can stomach.
@@ -286,13 +283,13 @@ public class PatchList<cell_t>
                                 Math.min(diff_text.length(), patch_size - patch.length1 - config.Patch_Margin));
                         patch.length1 += diff_text.length();
                         start1 += diff_text.length();
-                        if (diff_type == Operation.EQUAL) {
+                        if (diff_type == DifferenceType.MATCH) {
                             patch.length2 += diff_text.length();
                             start2 += diff_text.length();
                         } else {
                             empty = false;
                         }
-                        patch.diffs.add(new RowChangement<cell_t>(diff_type, diff_text));
+                        patch.diffs.add(new RowDifference<cell_t>(diff_type, diff_text));
                         if (diff_text.equals(bigpatch.diffs.getFirst().row)) {
                             bigpatch.diffs.removeFirst();
                         } else {
@@ -312,10 +309,10 @@ public class PatchList<cell_t>
                 if (postcontext.length() != 0) {
                     patch.length1 += postcontext.length();
                     patch.length2 += postcontext.length();
-                    if (!patch.diffs.isEmpty() && patch.diffs.getLast().operation == Operation.EQUAL) {
+                    if (!patch.diffs.isEmpty() && patch.diffs.getLast().operation == DifferenceType.MATCH) {
                         patch.diffs.getLast().row = patch.diffs.getLast().row.concat(postcontext);
                     } else {
-                        patch.diffs.add(new RowChangement<cell_t>(Operation.EQUAL, postcontext));
+                        patch.diffs.add(new RowDifference<cell_t>(DifferenceType.MATCH, postcontext));
                     }
                 }
                 if (!empty) {
@@ -350,7 +347,7 @@ public class PatchList<cell_t>
      * @throws IllegalArgumentException
      *             If invalid input.
      */
-    public static <cell_t> PatchList<cell_t> fromText(DMPDiff<cell_t> diff, String patchcode)
+    public static <cell_t> PatchList<cell_t> fromText(DMPRowComparator<cell_t> diff, String patchcode)
             throws IllegalArgumentException {
         PatchList<cell_t> patches = new PatchList<cell_t>(diff);
         if (patchcode.length() == 0) {
@@ -416,13 +413,13 @@ public class PatchList<cell_t>
                 IRow<cell_t> textline = diff.parse(codeline);
                 if (sign == '-') {
                     // Deletion.
-                    patch.diffs.add(new RowChangement<cell_t>(Operation.DELETE, textline));
+                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.REMOVAL, textline));
                 } else if (sign == '+') {
                     // Insertion.
-                    patch.diffs.add(new RowChangement<cell_t>(Operation.INSERT, textline));
+                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.INSERTION, textline));
                 } else if (sign == ' ') {
                     // Minor equality.
-                    patch.diffs.add(new RowChangement<cell_t>(Operation.EQUAL, textline));
+                    patch.diffs.add(new RowDifference<cell_t>(DifferenceType.MATCH, textline));
                 } else if (sign == '@') {
                     // Start of next patch.
                     break;

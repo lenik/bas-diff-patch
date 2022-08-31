@@ -40,9 +40,9 @@ public class diff_match_patch_compat_test {
 
     private static diff_match_patch_compat dmp;
     private static Config config;
-    private static Operation DELETE = Operation.DELETE;
-    private static Operation EQUAL = Operation.EQUAL;
-    private static Operation INSERT = Operation.INSERT;
+    private static DifferenceType DELETE = DifferenceType.REMOVAL;
+    private static DifferenceType EQUAL = DifferenceType.MATCH;
+    private static DifferenceType INSERT = DifferenceType.INSERTION;
 
     // DIFF TEST FUNCTIONS
 
@@ -1070,10 +1070,10 @@ public class diff_match_patch_compat_test {
     private static String[] diff_rebuildtexts(LinkedList<_Diff> diffs) {
         String[] text = { "", "" };
         for (_Diff myDiff : diffs) {
-            if (myDiff.operation != Operation.INSERT) {
+            if (myDiff.operation != DifferenceType.INSERTION) {
                 text[0] += myDiff.text;
             }
-            if (myDiff.operation != Operation.DELETE) {
+            if (myDiff.operation != DifferenceType.REMOVAL) {
                 text[1] += myDiff.text;
             }
         }

@@ -3,12 +3,12 @@ package net.bodz.bas.compare.dmp;
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.IntegerRow;
 
-public class IntCharsDiff
-        extends DMPDiff<Integer> {
+public class IntCharsComparator
+        extends DMPRowComparator<Integer> {
 
     public static final int SEP = -1;
 
-    public IntCharsDiff(Config config) {
+    public IntCharsComparator(Config config) {
         super(config);
     }
 

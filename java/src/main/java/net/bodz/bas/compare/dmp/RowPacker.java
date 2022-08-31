@@ -12,10 +12,10 @@ import net.bodz.bas.text.row.MutableRow;
 public class RowPacker<cell_t> {
 
     Config config;
-    DMPDiff<cell_t> diff;
+    DMPRowComparator<cell_t> diff;
     cell_t separator;
 
-    public RowPacker(DMPDiff<cell_t> diff) {
+    public RowPacker(DMPRowComparator<cell_t> diff) {
         this.config = diff.config;
         this.diff = diff;
         this.separator = diff.separator();
@@ -104,16 +104,17 @@ public class RowPacker<cell_t> {
      * @param packArray
      *            List of unique strings.
      */
-    public <T extends cell_t> ChangeList<cell_t> unpack(List<RowChangement<Integer>> changes,
+    public <T extends cell_t> EditList<cell_t> unpack(List<? extends IRowDifference<Integer>> changes,
             List<IRow<T>> packArray) {
-        ChangeList<cell_t> result = new ChangeList<cell_t>(diff);
-        for (RowChangement<Integer> change : changes) {
-            MutableRow<T> row = new MutableRow<T>();
-            for (int j = 0; j < change.row.length(); j++) {
-                Integer index = change.row.cellAt(j);
-                row.append(packArray.get(index));
+        EditList<cell_t> result = new EditList<cell_t>(diff);
+        for (IRowDifference<Integer> change : changes) {
+            IRow<Integer> atoms = change.getRow();
+            MutableRow<T> expansion = new MutableRow<T>();
+            for (int j = 0; j < atoms.length(); j++) {
+                Integer index = atoms.cellAt(j);
+                expansion.append(packArray.get(index));
             }
-            result.addConst(new RowChangement<T>(change.operation, row));
+            result.add(new RowDifference<T>(change.getDifferenceType(), expansion));
         }
         return result;
     }

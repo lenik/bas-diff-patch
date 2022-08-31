@@ -8,9 +8,9 @@ import net.bodz.bas.text.row.IRow;
 public class Patch<cell_t> {
 
     Config config;
-    DMPDiff<cell_t> diff;
+    DMPRowComparator<cell_t> diff;
 
-    public ChangeList<cell_t> diffs;
+    public EditList<cell_t> diffs;
     public int start1;
     public int start2;
     public int length1;
@@ -19,10 +19,10 @@ public class Patch<cell_t> {
     /**
      * Constructor. Initializes with an empty list of diffs.
      */
-    public Patch(DMPDiff<cell_t> diff) {
+    public Patch(DMPRowComparator<cell_t> diff) {
         this.config = diff.config;
         this.diff = diff;
-        this.diffs = new ChangeList<cell_t>(diff);
+        this.diffs = new EditList<cell_t>(diff);
     }
 
     /**
@@ -61,13 +61,13 @@ public class Patch<cell_t> {
         // Add the prefix.
         IRow<cell_t> prefix = text.slice(Math.max(0, this.start2 - padding), this.start2);
         if (prefix.length() != 0) {
-            this.diffs.addFirst(new RowChangement<cell_t>(Operation.EQUAL, prefix));
+            this.diffs.addFirst(new RowDifference<cell_t>(DifferenceType.MATCH, prefix));
         }
         // Add the suffix.
         IRow<cell_t> suffix = text.slice(this.start2 + this.length1,
                 Math.min(text.length(), this.start2 + this.length1 + padding));
         if (suffix.length() != 0) {
-            this.diffs.addLast(new RowChangement<cell_t>(Operation.EQUAL, suffix));
+            this.diffs.addLast(new RowDifference<cell_t>(DifferenceType.MATCH, suffix));
         }
 
         // Roll back the start points.
@@ -104,15 +104,15 @@ public class Patch<cell_t> {
         StringBuilder text = new StringBuilder();
         text.append("@@ -").append(coords1).append(" +").append(coords2).append(" @@\n");
         // Escape the body of the patch with %xx notation.
-        for (RowChangement<cell_t> aDiff : this.diffs) {
+        for (RowEdit<cell_t> aDiff : this.diffs) {
             switch (aDiff.operation) {
-            case INSERT:
+            case INSERTION:
                 text.append('+');
                 break;
-            case DELETE:
+            case REMOVAL:
                 text.append('-');
                 break;
-            case EQUAL:
+            case MATCH:
                 text.append(' ');
                 break;
             }

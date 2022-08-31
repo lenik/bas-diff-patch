@@ -3,10 +3,10 @@ package net.bodz.bas.compare.dmp;
 import net.bodz.bas.text.row.CharsView;
 import net.bodz.bas.text.row.IRow;
 
-public class CharsDiff
-        extends DMPDiff<Character> {
+public class CharsComparator
+        extends DMPRowComparator<Character> {
 
-    public CharsDiff(Config config) {
+    public CharsComparator(Config config) {
         super(config);
     }
 

@@ -3,10 +3,10 @@ package net.bodz.bas.compare.dmp;
 import net.bodz.bas.text.LinesText.Builder;
 import net.bodz.bas.text.row.IRow;
 
-public class TrimmedLinesDiff
-        extends LinesDiff {
+public class TrimmedLinesComparator
+        extends LinesComparator {
 
-    public TrimmedLinesDiff(Config config) {
+    public TrimmedLinesComparator(Config config) {
         super(config);
     }
 
