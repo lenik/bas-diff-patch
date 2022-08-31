@@ -64,7 +64,7 @@ public abstract class AbstractRow<cell_t>
             end += length();
         if (begin < 0)
             throw new IndexOutOfBoundsException(String.valueOf(begin));
-        if (end < 0 || end - begin > length())
+        if (end < 0 || end > length())
             throw new IndexOutOfBoundsException(String.valueOf(end));
         if (end < begin)
             throw new IllegalArgumentException("end is less than begin");
