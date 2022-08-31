@@ -14,12 +14,12 @@ public abstract class DMPRowComparator<cell_t>
             ICleanupSemanticScore<cell_t> {
 
     public final Config config;
-    RowPacker<cell_t> packer;
+    RowPacker<cell_t> rowPacker;
     RowMatcher<cell_t> rowMatcher;
 
     public DMPRowComparator(Config config) {
         this.config = config;
-        packer = new RowPacker<cell_t>(this);
+        rowPacker = new RowPacker<cell_t>(this);
         rowMatcher = new RowMatcher<cell_t>(config);
     }
 
@@ -183,35 +183,42 @@ public abstract class DMPRowComparator<cell_t>
         }
 
         if (packing && row1.length() > 100 && row2.length() > 100) {
-            return _compareByPack(row1, row2, deadline);
+            // Scan the text on a line-by-line basis first.
+            PackedRows<T> packs = rowPacker.pack(row1, row2);
+            return comparePacked(packs, deadline);
         }
 
         return _bisect(row1, row2, deadline);
+    }
+
+    public <T extends cell_t> EditList<cell_t> comparePacked(PackedRows<T> pack) {
+        // Set a deadline by which time the diff must be complete.
+        long deadline;
+        if (config.Diff_Timeout <= 0) {
+            deadline = Long.MAX_VALUE;
+        } else {
+            deadline = System.currentTimeMillis() + (long) (config.Diff_Timeout * 1000);
+        }
+        return comparePacked(pack, deadline);
     }
 
     /**
      * Do a quick line-level diff on both strings, then rediff the parts for greater accuracy. This
      * speedup can produce non-minimal diffs.
      *
-     * @param row1
-     *            Old string to be diffed.
-     * @param row2
-     *            New string to be diffed.
      * @param deadline
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private <T extends cell_t> EditList<cell_t> _compareByPack(IRow<T> row1, IRow<T> row2, long deadline) {
-        // Scan the text on a line-by-line basis first.
-        LinesToCharsResult<T> a = packer.pack(row1, row2);
-        List<IRow<T>> linearray = a.lineArray;
+    private <T extends cell_t> EditList<cell_t> comparePacked(PackedRows<T> pack, long deadline) {
+        List<IRow<T>> packArray = pack.packArray;
 
         IntCharsComparator atomsComparator = new IntCharsComparator(config);
         EditList<Integer> atomDiffs = //
-                atomsComparator._compare(a.chars1, a.chars2, false, deadline);
+                atomsComparator._compare(pack.getIndexRow1(), pack.getIndexRow2(), false, deadline);
 
         // Convert the diff back to original text.
-        EditList<cell_t> diffs = packer.unpack(atomDiffs, linearray);
+        EditList<cell_t> diffs = rowPacker.unpack(atomDiffs, packArray);
         // Eliminate freak matches (e.g. blank lines)
         diffs.cleanupSemantic();
 
@@ -228,11 +235,11 @@ public abstract class DMPRowComparator<cell_t>
             switch (thisDiff.type) {
             case INSERTION:
                 count_insert++;
-                text_insert.append(thisDiff.row);
+                text_insert.append(thisDiff.delta);
                 break;
             case REMOVAL:
                 count_delete++;
-                text_delete.append(thisDiff.row);
+                text_delete.append(thisDiff.delta);
                 break;
             case MATCH:
                 // Upon reaching an equality, check for prior redundancies.

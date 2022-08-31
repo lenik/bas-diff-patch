@@ -135,14 +135,14 @@ public class diff_match_patch_compat {
     protected _LinesToCharsResult diff_linesToChars(String _text1, String _text2) {
         CharsView text1 = convText(_text1);
         CharsView text2 = convText(_text2);
-        LinesToCharsResult<Character> result = dmp.packer.pack(text1, text2);
+        PackedRows<Character> pack = dmp.rowPacker.pack(text1, text2);
         List<String> lineArray = new ArrayList<String>();
-        for (IRow<Character> line : result.lineArray)
+        for (IRow<Character> line : pack.packArray)
             lineArray.add(dmp.format(line));
 
         return new _LinesToCharsResult( //
-                INT_CHARS.format(result.chars1), //
-                INT_CHARS.format(result.chars2), //
+                INT_CHARS.format(pack.getIndexRow1()), //
+                INT_CHARS.format(pack.getIndexRow2()), //
                 lineArray);
     }
 
