@@ -1,6 +1,6 @@
 package net.bodz.bas.compare.dmp;
 
-public class Config {
+public class DMPConfig {
 
     // Defaults.
     // Set these on your diff_match_patch instance to override the defaults.

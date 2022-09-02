@@ -14,7 +14,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
         implements
             IDiffList<diff_t, cell_t> {
 
-    Config config;
+    DMPConfig config;
     DMPRowComparator<cell_t> dmp;
 
     protected LinkedList<diff_t> list = new LinkedList<diff_t>();

@@ -7,9 +7,9 @@ import net.bodz.bas.text.row.IRow;
 
 public class RowMatcher<cell_t> {
 
-    Config config;
+    DMPConfig config;
 
-    public RowMatcher(Config config) {
+    public RowMatcher(DMPConfig config) {
         this.config = config;
     }
 

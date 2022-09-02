@@ -7,7 +7,7 @@ import net.bodz.bas.text.row.IRow;
  */
 public class Patch<cell_t> {
 
-    Config config;
+    DMPConfig config;
     DMPRowComparator<cell_t> diff;
 
     public EditList<cell_t> diffs;

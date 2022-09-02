@@ -13,11 +13,11 @@ public abstract class DMPRowComparator<cell_t>
         implements
             ICleanupSemanticScore<cell_t> {
 
-    public final Config config;
+    public final DMPConfig config;
     RowPacker<cell_t> rowPacker;
     RowMatcher<cell_t> rowMatcher;
 
-    public DMPRowComparator(Config config) {
+    public DMPRowComparator(DMPConfig config) {
         this.config = config;
         rowPacker = new RowPacker<cell_t>(this);
         rowMatcher = new RowMatcher<cell_t>(config);

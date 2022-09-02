@@ -6,7 +6,7 @@ import net.bodz.bas.text.row.IRow;
 public class TrimmedLinesComparator
         extends LinesComparator {
 
-    public TrimmedLinesComparator(Config config) {
+    public TrimmedLinesComparator(DMPConfig config) {
         super(config);
     }
 

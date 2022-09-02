@@ -8,7 +8,7 @@ public class IntCharsComparator
 
     public static final int SEP = -1;
 
-    public IntCharsComparator(Config config) {
+    public IntCharsComparator(DMPConfig config) {
         super(config);
     }
 

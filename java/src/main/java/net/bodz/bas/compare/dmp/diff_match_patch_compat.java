@@ -11,7 +11,7 @@ import net.bodz.bas.text.row.IRow;
 
 public class diff_match_patch_compat {
 
-    public Config config = new Config();
+    public DMPConfig config = new DMPConfig();
     CharsComparator dmp = new CharsComparator(config);
 
     _Diff conv(IRowDifference<?> diff) {

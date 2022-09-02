@@ -109,7 +109,7 @@ public class RowUtils {
      *         prefix of row2, the suffix of row2 and the common middle. Or null if there was no
      *         match.
      */
-    public static <cell_t> HalfMatch<cell_t> halfMatch(Config config, IRow<cell_t> row1, IRow<cell_t> row2) {
+    public static <cell_t> HalfMatch<cell_t> halfMatch(DMPConfig config, IRow<cell_t> row1, IRow<cell_t> row2) {
         if (config.Diff_Timeout <= 0) {
             // Don't risk returning a non-optimal diff if we have unlimited time.
             return null;

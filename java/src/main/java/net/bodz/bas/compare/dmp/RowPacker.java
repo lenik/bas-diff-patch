@@ -11,7 +11,7 @@ import net.bodz.bas.text.row.MutableRow;
 
 public class RowPacker<cell_t> {
 
-    Config config;
+    DMPConfig config;
     DMPRowComparator<cell_t> dmp;
     cell_t separator;
 

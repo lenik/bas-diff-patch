@@ -13,7 +13,7 @@ public class CsIntsComparator
 
     public static final int SEP = -1;
 
-    public CsIntsComparator(Config config) {
+    public CsIntsComparator(DMPConfig config) {
         super(config);
     }
 

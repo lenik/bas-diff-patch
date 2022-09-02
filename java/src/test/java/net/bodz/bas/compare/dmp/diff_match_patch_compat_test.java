@@ -39,7 +39,7 @@ import net.bodz.bas.compare.dmp.diff_match_patch_compat._Patch;
 public class diff_match_patch_compat_test {
 
     private static diff_match_patch_compat dmp;
-    private static Config config;
+    private static DMPConfig config;
     private static DifferenceType DELETE = DifferenceType.REMOVAL;
     private static DifferenceType EQUAL = DifferenceType.MATCH;
     private static DifferenceType INSERT = DifferenceType.INSERTION;

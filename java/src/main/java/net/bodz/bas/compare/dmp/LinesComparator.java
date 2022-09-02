@@ -10,7 +10,7 @@ public class LinesComparator
 
     boolean useUnicodeFormFeed = false;
 
-    public LinesComparator(Config config) {
+    public LinesComparator(DMPConfig config) {
         super(config);
     }
 

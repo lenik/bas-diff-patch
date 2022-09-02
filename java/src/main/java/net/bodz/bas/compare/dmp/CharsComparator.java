@@ -6,7 +6,7 @@ import net.bodz.bas.text.row.IRow;
 public class CharsComparator
         extends DMPRowComparator<Character> {
 
-    public CharsComparator(Config config) {
+    public CharsComparator(DMPConfig config) {
         super(config);
     }
 
