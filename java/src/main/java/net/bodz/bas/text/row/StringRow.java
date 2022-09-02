@@ -9,8 +9,9 @@ public class StringRow
         super();
     }
 
-    public StringRow(List<String> list) {
-        super(list);
+    @SuppressWarnings("unchecked")
+    public StringRow(List<? extends String> list) {
+        super((List<String>) list);
     }
 
     public StringRow(List<String> list, boolean copyOnWrite) {

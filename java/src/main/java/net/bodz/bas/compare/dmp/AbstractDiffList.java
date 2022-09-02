@@ -44,6 +44,11 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
         return list.isEmpty();
     }
 
+    @Deprecated
+    public diff_t get(int index) {
+        return list.get(index);
+    }
+
     @Override
     public diff_t getFirst() {
         return list.getFirst();
@@ -90,6 +95,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
      *            Location within row1.
      * @return Location within row2.
      */
+    @Override
     public final int xIndex(int loc) {
         int chars1 = 0;
         int chars2 = 0;
@@ -130,6 +136,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
      *            List of Diff objects.
      * @return HTML representation.
      */
+    @Override
     public final String prettyHtml() {
         StringBuilder html = new StringBuilder();
         for (IRowDifference<cell_t> aDiff : this) {
@@ -157,6 +164,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
      *            List of Diff objects.
      * @return Source text.
      */
+    @Override
     public final IRow<cell_t> restoreRow1() {
         MutableRow<cell_t> concat = new MutableRow<cell_t>();
         for (IRowDifference<cell_t> aDiff : this) {
@@ -174,6 +182,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
      *            List of Diff objects.
      * @return Destination text.
      */
+    @Override
     public final IRow<cell_t> restoreRow2() {
         MutableRow<cell_t> concat = new MutableRow<cell_t>();
         for (IRowDifference<cell_t> aDiff : this) {
@@ -191,6 +200,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
      *            List of Diff objects.
      * @return Number of changes.
      */
+    @Override
     public final int levenshtein() {
         int levenshtein = 0;
         int insertions = 0;
@@ -225,6 +235,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
      *            List of Diff objects.
      * @return Delta text.
      */
+    @Override
     public final String toDelta() {
         StringBuilder sb = new StringBuilder();
         for (IRowDifference<cell_t> aDiff : this) {
@@ -266,6 +277,7 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
      * @throws IllegalArgumentException
      *             If invalid input.
      */
+    @Override
     public final void readDelta(IRow<cell_t> row1, String delta)
             throws IllegalArgumentException {
 

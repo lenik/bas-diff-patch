@@ -7,7 +7,7 @@ public class LinesText
         implements
             Iterable<String> {
 
-    final String text;
+    final String s;
     final int start;
     final int end;
     final boolean removeEOL;
@@ -24,7 +24,7 @@ public class LinesText
     }
 
     private LinesText(Builder b) {
-        text = b.text;
+        s = b.text;
         start = b.start;
         end = b.end;
         removeEOL = b.removeEOL;
@@ -102,6 +102,36 @@ public class LinesText
             return this;
         }
 
+        public Builder trimLeft() {
+            this.trimLeft = true;
+            return this;
+        }
+
+        public Builder trimLeft(boolean trimLeft) {
+            this.trimLeft = trimLeft;
+            return this;
+        }
+
+        public Builder trimRight() {
+            this.trimRight = true;
+            return this;
+        }
+
+        public Builder trimRight(boolean trimRight) {
+            this.trimRight = trimRight;
+            return this;
+        }
+
+        public Builder trim() {
+            this.trimLeft = this.trimRight = true;
+            return this;
+        }
+
+        public Builder trim(boolean trim) {
+            this.trimLeft = this.trimRight = trim;
+            return this;
+        }
+
         public LinesText build() {
             return new LinesText(this);
         }
@@ -137,7 +167,7 @@ class LineIterator
             return false; // EOF
 
         if (nextStart >= nextEol) {
-            nextEol = text.text.indexOf('\n', nextEol + 1);
+            nextEol = text.s.indexOf('\n', nextEol + 1);
             if (nextEol == -1)
                 nextEol = text.end;
             else {
@@ -160,27 +190,52 @@ class LineIterator
             throw new NoSuchElementException();
 
         if (nextEol > nextStart)
-            lastLineHasEOL = text.text.charAt(nextEol - 1) == '\n';
+            lastLineHasEOL = text.s.charAt(nextEol - 1) == '\n';
         else
             lastLineHasEOL = false;
         lastLineHasCRLF = false;
 
+        index++;
+        int lineStart = nextStart;
         int lineEnd = nextEol;
         if (text.removeEOL)
             if (lastLineHasEOL) {
                 lineEnd--;
-                if (lineEnd - 1 >= text.start && text.text.charAt(lineEnd - 1) == '\r') {
+                if (lineEnd - 1 >= text.start && text.s.charAt(lineEnd - 1) == '\r') {
                     lastLineHasCRLF = true;
                     lineEnd--;
                 }
             }
 
-        String line = text.text.substring(nextStart, lineEnd);
+        if (text.trimLeft)
+            while (lineStart < text.end && lineStart < lineEnd) {
+                if (isTrimSpace(text.s.charAt(lineStart)))
+                    lineStart++;
+                else
+                    break;
+            }
+        if (text.trimRight)
+            while (lineEnd - 1 >= text.start && lineEnd > lineStart) {
+                if (isTrimSpace(text.s.charAt(lineEnd - 1)))
+                    lineEnd--;
+                else
+                    break;
+            }
 
         nextStart = nextEol;
 
-        index++;
+        String line = text.s.substring(lineStart, lineEnd);
         return line;
+    }
+
+    boolean isTrimSpace(char c) {
+        switch (c) {
+        case '\n':
+        case '\r':
+            return text.removeEOL;
+        default:
+            return Character.isWhitespace(c);
+        }
     }
 
     @Override
