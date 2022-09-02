@@ -286,8 +286,8 @@ public abstract class AbstractRow<cell_t>
             return true;
         if (obj == null)
             return false;
-        if (getClass() != obj.getClass())
-            return false;
+//        if (getClass() != obj.getClass())
+//            return false;
 
         @SuppressWarnings("unchecked")
         AbstractRow<cell_t> other = (AbstractRow<cell_t>) obj;
