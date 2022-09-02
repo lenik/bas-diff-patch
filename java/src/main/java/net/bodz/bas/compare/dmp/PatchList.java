@@ -17,7 +17,7 @@ public class PatchList<cell_t>
 
     private static final long serialVersionUID = 1L;
 
-    Config config;
+    DMPConfig config;
     DMPRowComparator<cell_t> diff;
     RowMatcher<cell_t> matcher;
 
@@ -63,7 +63,7 @@ public class PatchList<cell_t>
      */
     public PatchApplyResult<cell_t> apply(IRow<cell_t> row) {
         if (this.isEmpty()) {
-            return new PatchApplyResult<cell_t>(row);
+            return new PatchApplyResult<cell_t>(row.copy());
         }
 
         // Deep copy the patches so that no changes are made to originals.
