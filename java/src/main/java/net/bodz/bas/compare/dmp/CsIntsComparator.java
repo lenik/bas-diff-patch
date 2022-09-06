@@ -19,7 +19,7 @@ public class CsIntsComparator
 
     @Override
     public Integer separator() {
-        return -1;
+        return SEP;
     }
 
     @Override
