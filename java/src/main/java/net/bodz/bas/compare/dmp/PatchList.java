@@ -27,6 +27,26 @@ public class PatchList<cell_t>
         this.matcher = new RowMatcher<cell_t>(config);
     }
 
+    public boolean isChanged() {
+        for (Patch<cell_t> patch : this) {
+            if (!patch.diffs.isEmpty())
+                return true;
+        }
+        return false;
+    }
+
+    public boolean isNoChange() {
+        return !isChanged();
+    }
+
+    public boolean isSame() {
+        return isNoChange();
+    }
+
+    public boolean isDifferent() {
+        return isChanged();
+    }
+
     /**
      * Given an array of patches, return another array that is identical.
      *

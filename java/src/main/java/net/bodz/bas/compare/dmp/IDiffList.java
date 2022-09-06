@@ -13,6 +13,10 @@ public interface IDiffList<diff_t extends IRowDifference<cell_t>, cell_t>
 
     boolean isEmpty();
 
+    boolean isSame();
+
+    boolean isDifferent();
+
     ListIterator<diff_t> listIterator();
 
     diff_t getFirst();

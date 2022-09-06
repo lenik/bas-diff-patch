@@ -19,4 +19,11 @@ public class PatchApplyResult<cell_t> {
         this(row, new BoolsView(results));
     }
 
+    public boolean isFailed() {
+        for (Boolean status : results)
+            if (!status)
+                return true;
+        return false;
+    }
+
 }
