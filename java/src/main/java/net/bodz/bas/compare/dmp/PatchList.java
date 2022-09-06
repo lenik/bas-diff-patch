@@ -18,12 +18,12 @@ public class PatchList<cell_t>
     private static final long serialVersionUID = 1L;
 
     DMPConfig config;
-    DMPRowComparator<cell_t> diff;
+    DMPRowComparator<cell_t> dmp;
     RowMatcher<cell_t> matcher;
 
-    public PatchList(DMPRowComparator<cell_t> diff) {
-        this.config = diff.config;
-        this.diff = diff;
+    public PatchList(DMPRowComparator<cell_t> dmp) {
+        this.config = dmp.config;
+        this.dmp = dmp;
         this.matcher = new RowMatcher<cell_t>(config);
     }
 
@@ -55,9 +55,9 @@ public class PatchList<cell_t>
      * @return Array of Patch objects.
      */
     public PatchList<cell_t> deepCopy() {
-        PatchList<cell_t> patchesCopy = new PatchList<cell_t>(diff);
+        PatchList<cell_t> patchesCopy = new PatchList<cell_t>(dmp);
         for (Patch<cell_t> aPatch : this) {
-            Patch<cell_t> patchCopy = new Patch<cell_t>(diff);
+            Patch<cell_t> patchCopy = new Patch<cell_t>(dmp);
             for (RowEdit<cell_t> aDiff : aPatch.diffs) {
                 RowEdit<cell_t> diffCopy = new RowEdit<cell_t>(aDiff.type, aDiff.delta);
                 patchCopy.diffs.append(diffCopy);
@@ -145,7 +145,7 @@ public class PatchList<cell_t>
                 } else {
                     // Imperfect match. Run a diff to get a framework of equivalent
                     // indices.
-                    EditList<cell_t> diffs = diff.compare(row1, row2);
+                    EditList<cell_t> diffs = dmp.compare(row1, row2);
                     if (row1.length() > config.Match_MaxBits
                             && diffs.levenshtein() / (float) row1.length() > config.Patch_DeleteThreshold) {
                         // The end points match, but the content is unacceptably bad.
@@ -191,7 +191,7 @@ public class PatchList<cell_t>
         short paddingLength = this.config.Patch_Margin;
         MutableRow<cell_t> nullPadding = new MutableRow<cell_t>();
         for (short x = 1; x <= paddingLength; x++) {
-            cell_t pad = diff.createPadding(x);
+            cell_t pad = dmp.createPadding(x);
             nullPadding.append(pad);
         }
 
@@ -271,7 +271,7 @@ public class PatchList<cell_t>
             precontext = Rows.empty();
             while (!bigpatch.diffs.isEmpty()) {
                 // Create one of several smaller patches.
-                patch = new Patch<cell_t>(diff);
+                patch = new Patch<cell_t>(dmp);
                 empty = true;
                 patch.start1 = start1 - precontext.length();
                 patch.start2 = start2 - precontext.length();

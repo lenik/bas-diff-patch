@@ -262,8 +262,8 @@ public abstract class AbstractRow<cell_t>
         int n = length();
         StringBuilder sb = new StringBuilder(n);
         for (int i = 0; i < n; i++) {
-            cell_t ch = cellAt(i);
-            sb.append(ch.toString());
+            cell_t cell = cellAt(i);
+            sb.append(cell.toString());
         }
         return sb.toString();
     }
