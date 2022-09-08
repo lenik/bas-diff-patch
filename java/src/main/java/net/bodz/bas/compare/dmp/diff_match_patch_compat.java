@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import net.bodz.bas.text.row.BoolsView;
 import net.bodz.bas.text.row.CharsView;
 import net.bodz.bas.text.row.IRow;
 
@@ -235,8 +234,10 @@ public class diff_match_patch_compat {
     public Object[] patch_apply(LinkedList<_Patch> patches, String _text) {
         CharsView text = convText(_text);
         PatchApplyResult<Character> result = convPatchesR(patches).apply(text);
-        boolean[] bools = ((BoolsView) result.results).toBooleanArray();
-        return new Object[] { dmp.format(result.row), bools };
+        boolean[] bools = new boolean[result.size()];
+        for (int i = 0; i < bools.length; i++)
+            bools[i] = !result.get(i).isError();
+        return new Object[] { dmp.format(result.patchedRow), bools };
     }
 
     public String patch_addPadding(LinkedList<_Patch> _patches) {

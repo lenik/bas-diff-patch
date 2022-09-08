@@ -1,27 +1,39 @@
 package net.bodz.bas.compare.dmp;
 
-import net.bodz.bas.text.row.BoolsView;
+import java.util.ArrayList;
+
 import net.bodz.bas.text.row.IMutableRow;
-import net.bodz.bas.text.row.IRow;
 
-public class PatchApplyResult<cell_t> {
+public class PatchApplyResult<cell_t>
+        extends ArrayList<PatchApplyStatus<cell_t>> {
 
-    public IMutableRow<cell_t> row;
-    public EditList<cell_t> changes;
-    public IRow<Boolean> results;
+    private static final long serialVersionUID = 1L;
 
-    public PatchApplyResult(IMutableRow<cell_t> row, IRow<Boolean> results) {
-        this.row = row;
-        this.results = results;
+    IMutableRow<cell_t> patchedRow;
+    EditList<cell_t> changes;
+
+    public PatchApplyResult() {
     }
 
-    public PatchApplyResult(IMutableRow<cell_t> row, boolean... results) {
-        this(row, new BoolsView(results));
+    public IMutableRow<cell_t> getPatchedRow() {
+        return patchedRow;
     }
 
-    public boolean isFailed() {
-        for (Boolean status : results)
-            if (!status)
+    public EditList<cell_t> getChanges() {
+        return changes;
+    }
+
+    public void setPatchedRow(IMutableRow<cell_t> patchedRow) {
+        this.patchedRow = patchedRow;
+    }
+
+    public void setChanges(EditList<cell_t> changes) {
+        this.changes = changes;
+    }
+
+    public boolean isError() {
+        for (PatchApplyStatus<cell_t> status : this)
+            if (status.isError())
                 return true;
         return false;
     }

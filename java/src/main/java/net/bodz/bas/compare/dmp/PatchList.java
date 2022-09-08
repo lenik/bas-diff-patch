@@ -82,8 +82,10 @@ public class PatchList<cell_t>
      * @return Two element Object array, containing the new text and an array of boolean values.
      */
     public PatchApplyResult<cell_t> apply(IRow<cell_t> row) {
+        PatchApplyResult<cell_t> result = new PatchApplyResult<cell_t>();
         if (this.isEmpty()) {
-            return new PatchApplyResult<cell_t>(row.copy());
+            result.setPatchedRow(row.copy());
+            return result;
         }
 
         // Deep copy the patches so that no changes are made to originals.
@@ -97,13 +99,11 @@ public class PatchList<cell_t>
 
         patches.splitMax();
 
-        int x = 0;
         // delta keeps track of the offset between the expected and actual location
         // of the previous patch. If there are patches expected at positions 10 and
         // 20, but the first patch was found at 12, delta is 2 and the second patch
         // has an effective expected position of 22.
         int delta = 0;
-        boolean[] results = new boolean[patches.size()];
         for (Patch<cell_t> aPatch : patches) {
             int expected_loc = aPatch.start2 + delta;
             IRow<cell_t> row1 = aPatch.diffs.restoreRow1();
@@ -124,14 +124,15 @@ public class PatchList<cell_t>
             } else {
                 start_loc = matcher.search(buf, row1, expected_loc);
             }
+            MatchState state;
             if (start_loc == -1) {
                 // No match found. :(
-                results[x] = false;
+                state = MatchState.NO_MATCH;
                 // Subtract the delta for this failed patch from subsequent patches.
                 delta -= aPatch.length2 - aPatch.length1;
             } else {
                 // Found a match. :)
-                results[x] = true;
+                state = MatchState.MATCH;
                 delta = start_loc - expected_loc;
                 IRow<cell_t> row2;
                 if (end_loc == -1) {
@@ -149,7 +150,7 @@ public class PatchList<cell_t>
                     if (row1.length() > config.Match_MaxBits
                             && diffs.levenshtein() / (float) row1.length() > config.Patch_DeleteThreshold) {
                         // The end points match, but the content is unacceptably bad.
-                        results[x] = false;
+                        state = MatchState.BAD_MATCH;
                     } else {
                         diffs.cleanupSemanticLossless();
                         int index1 = 0;
@@ -169,14 +170,16 @@ public class PatchList<cell_t>
                                 index1 += aDiff.delta.length();
                             }
                         }
+                        state = MatchState.GOOD_MATCH;
                     }
                 }
             }
-            x++;
+            result.add(new PatchApplyStatus<cell_t>(aPatch, state));
         }
         // Strip the padding off.
         buf.preserve(nullPadding.length(), buf.length() - nullPadding.length());
-        return new PatchApplyResult<cell_t>(buf, results);
+        result.setPatchedRow(buf);
+        return result;
     }
 
     /**
