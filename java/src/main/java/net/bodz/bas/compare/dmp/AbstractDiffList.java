@@ -46,12 +46,22 @@ public abstract class AbstractDiffList<diff_t extends IRowDifference<cell_t>, ce
 
     @Override
     public final boolean isSame() {
-        return isEmpty();
+        return !isDifferent();
     }
 
     @Override
     public final boolean isDifferent() {
-        return !isEmpty();
+        for (IRowDifference<cell_t> diff : this) {
+            switch (diff.getDifferenceType()) {
+            case MATCH:
+                continue;
+            case INSERTION:
+            case REMOVAL:
+            default:
+                return true;
+            }
+        }
+        return false;
     }
 
     @Deprecated

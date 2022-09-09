@@ -84,7 +84,7 @@ public class PatchList<cell_t>
     public PatchApplyResult<cell_t> apply(IRow<cell_t> row) {
         PatchApplyResult<cell_t> result = new PatchApplyResult<cell_t>();
         if (this.isEmpty()) {
-            result.setPatchedRow(row.copy());
+            result.patchedRow = row.copy();
             return result;
         }
 
@@ -105,6 +105,7 @@ public class PatchList<cell_t>
         // has an effective expected position of 22.
         int delta = 0;
         for (Patch<cell_t> aPatch : patches) {
+            MatchStatus status;
             int expected_loc = aPatch.start2 + delta;
             IRow<cell_t> row1 = aPatch.diffs.restoreRow1();
             int start_loc;
@@ -124,15 +125,14 @@ public class PatchList<cell_t>
             } else {
                 start_loc = matcher.search(buf, row1, expected_loc);
             }
-            MatchState state;
             if (start_loc == -1) {
                 // No match found. :(
-                state = MatchState.NO_MATCH;
+                status = MatchStatus.NO_MATCH;
                 // Subtract the delta for this failed patch from subsequent patches.
                 delta -= aPatch.length2 - aPatch.length1;
             } else {
                 // Found a match. :)
-                state = MatchState.MATCH;
+                status = MatchStatus.MATCH;
                 delta = start_loc - expected_loc;
                 IRow<cell_t> row2;
                 if (end_loc == -1) {
@@ -144,13 +144,12 @@ public class PatchList<cell_t>
                     // Perfect match, just shove the replacement text in.
                     buf.replace(start_loc, start_loc + row1.length(), aPatch.diffs.restoreRow2());
                 } else {
-                    // Imperfect match. Run a diff to get a framework of equivalent
-                    // indices.
+                    // Imperfect match. Run a diff to get a framework of equivalent indices.
                     EditList<cell_t> diffs = dmp.compare(row1, row2);
                     if (row1.length() > config.Match_MaxBits
                             && diffs.levenshtein() / (float) row1.length() > config.Patch_DeleteThreshold) {
                         // The end points match, but the content is unacceptably bad.
-                        state = MatchState.BAD_MATCH;
+                        status = MatchStatus.BAD_MATCH;
                     } else {
                         diffs.cleanupSemanticLossless();
                         int index1 = 0;
@@ -170,11 +169,11 @@ public class PatchList<cell_t>
                                 index1 += aDiff.delta.length();
                             }
                         }
-                        state = MatchState.GOOD_MATCH;
+                        status = MatchStatus.GOOD_MATCH;
                     }
                 }
             }
-            result.add(new PatchApplyStatus<cell_t>(aPatch, state));
+            result.add(aPatch, status);
         }
         // Strip the padding off.
         buf.preserve(nullPadding.length(), buf.length() - nullPadding.length());

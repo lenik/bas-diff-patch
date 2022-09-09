@@ -27,13 +27,13 @@ public class PatchApplyResult<cell_t>
         this.patchedRow = patchedRow;
     }
 
-    public void setChanges(EditList<cell_t> changes) {
-        this.changes = changes;
+    public void add(Patch<cell_t> patch, MatchStatus status) {
+        add(new PatchApplyStatus<cell_t>(patch, status));
     }
 
     public boolean isError() {
-        for (PatchApplyStatus<cell_t> status : this)
-            if (status.isError())
+        for (PatchApplyStatus<cell_t> item : this)
+            if (item.isError())
                 return true;
         return false;
     }
