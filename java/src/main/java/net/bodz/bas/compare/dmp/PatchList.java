@@ -17,7 +17,7 @@ public class PatchList<cell_t>
 
     private static final long serialVersionUID = 1L;
 
-    DMPConfig config;
+    public final DMPConfig config;
     DMPRowComparator<cell_t> dmp;
     RowMatcher<cell_t> matcher;
 
