@@ -836,7 +836,6 @@ public class diff_match_patch_compat_test {
                 p.toString());
     }
 
-    @SuppressWarnings("deprecation")
     public static void testPatchMake() {
         LinkedList<_Patch> patches;
         patches = dmp.patch_make("", "");
