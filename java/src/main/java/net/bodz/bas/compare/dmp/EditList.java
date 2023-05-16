@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.ListIterator;
 
-import net.bodz.bas.text.Nullables;
+import net.bodz.bas.text.Nullables_dmp;
 import net.bodz.bas.text.row.IMutableRow;
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.MutableRow;
@@ -210,7 +210,7 @@ public class EditList<cell_t>
                 bestEquality2 = equality2;
                 bestScore = dmp.cleanupSemanticScore(equality1, edit) + dmp.cleanupSemanticScore(edit, equality2);
                 while (edit.length() != 0 && equality2.length() != 0
-                        && Nullables.equals(edit.cellAt(0), equality2.cellAt(0))) {
+                        && Nullables_dmp.equals(edit.cellAt(0), equality2.cellAt(0))) {
                     equality1 = equality1.concat(edit.cellAt(0));
                     edit = edit.slice(1).concat(equality2.cellAt(0));
                     equality2 = equality2.slice(1);

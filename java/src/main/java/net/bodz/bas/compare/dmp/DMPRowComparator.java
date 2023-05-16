@@ -3,7 +3,7 @@ package net.bodz.bas.compare.dmp;
 import java.util.List;
 import java.util.ListIterator;
 
-import net.bodz.bas.text.Nullables;
+import net.bodz.bas.text.Nullables_dmp;
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.MutableRow;
 import net.bodz.bas.text.row.Rows;
@@ -320,7 +320,7 @@ public abstract class DMPRowComparator<cell_t>
                     x1 = v1[k1_offset - 1] + 1;
                 }
                 int y1 = x1 - k1;
-                while (x1 < row1_length && y1 < row2_length && Nullables.equals(row1.cellAt(x1), row2.cellAt(y1))) {
+                while (x1 < row1_length && y1 < row2_length && Nullables_dmp.equals(row1.cellAt(x1), row2.cellAt(y1))) {
                     x1++;
                     y1++;
                 }
@@ -355,7 +355,7 @@ public abstract class DMPRowComparator<cell_t>
                 }
                 int y2 = x2 - k2;
                 while (x2 < row1_length && y2 < row2_length
-                        && Nullables.equals(row1.cellAt(row1_length - x2 - 1), row2.cellAt(row2_length - y2 - 1))) {
+                        && Nullables_dmp.equals(row1.cellAt(row1_length - x2 - 1), row2.cellAt(row2_length - y2 - 1))) {
                     x2++;
                     y2++;
                 }

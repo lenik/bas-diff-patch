@@ -3,7 +3,7 @@ package net.bodz.bas.text.row;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import net.bodz.bas.text.Nullables;
+import net.bodz.bas.text.Nullables_dmp;
 
 public abstract class AbstractRow<cell_t>
         implements
@@ -141,9 +141,9 @@ public abstract class AbstractRow<cell_t>
         int max = sourceOffset + (sourceCount - targetCount);
 
         for (int i = sourceOffset + fromIndex; i <= max; i++) {
-            if (Nullables.notEquals(source.cellAt(i), first))
+            if (Nullables_dmp.notEquals(source.cellAt(i), first))
                 while (++i <= max)
-                    if (Nullables.equals(source.cellAt(i), first))
+                    if (Nullables_dmp.equals(source.cellAt(i), first))
                         break;
 
             if (i <= max) {
@@ -152,7 +152,7 @@ public abstract class AbstractRow<cell_t>
 
                 int k = targetOffset + 1;
                 while (j < end) {
-                    if (Nullables.notEquals(source.cellAt(j), target.cellAt(k)))
+                    if (Nullables_dmp.notEquals(source.cellAt(j), target.cellAt(k)))
                         break;
                     j++;
                     k++;
@@ -181,7 +181,7 @@ public abstract class AbstractRow<cell_t>
 
         L: while (true) {
             while (i >= min) {
-                if (Nullables.equals(source.cellAt(i), strLastChar))
+                if (Nullables_dmp.equals(source.cellAt(i), strLastChar))
                     break;
                 i--;
             }
@@ -193,7 +193,7 @@ public abstract class AbstractRow<cell_t>
             int k = strLastIndex - 1;
 
             while (j > start)
-                if (Nullables.notEquals(source.cellAt(j--), target.cellAt(k--))) {
+                if (Nullables_dmp.notEquals(source.cellAt(j--), target.cellAt(k--))) {
                     i--;
                     continue L;
                 }
@@ -208,7 +208,7 @@ public abstract class AbstractRow<cell_t>
         if (nl < np)
             return false;
         for (int i = 0; i < np; i++)
-            if (Nullables.notEquals(cellAt(i), pattern.cellAt(i)))
+            if (Nullables_dmp.notEquals(cellAt(i), pattern.cellAt(i)))
                 return false;
         return true;
     }
@@ -221,7 +221,7 @@ public abstract class AbstractRow<cell_t>
             return false;
         int tail = nl - np;
         for (int i = 0; i < np; i++)
-            if (Nullables.notEquals(cellAt(tail + i), pattern.cellAt(i)))
+            if (Nullables_dmp.notEquals(cellAt(tail + i), pattern.cellAt(i)))
                 return false;
         return true;
     }

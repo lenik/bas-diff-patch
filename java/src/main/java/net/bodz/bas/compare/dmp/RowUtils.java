@@ -1,6 +1,6 @@
 package net.bodz.bas.compare.dmp;
 
-import net.bodz.bas.text.Nullables;
+import net.bodz.bas.text.Nullables_dmp;
 import net.bodz.bas.text.row.IRow;
 import net.bodz.bas.text.row.Rows;
 
@@ -19,7 +19,7 @@ public class RowUtils {
         // Performance analysis: https://neil.fraser.name/news/2007/10/09/
         int n = Math.min(row1.length(), row2.length());
         for (int i = 0; i < n; i++) {
-            if (Nullables.notEquals(row1.cellAt(i), row2.cellAt(i))) {
+            if (Nullables_dmp.notEquals(row1.cellAt(i), row2.cellAt(i))) {
                 return i;
             }
         }
@@ -41,7 +41,7 @@ public class RowUtils {
         int row2_length = row2.length();
         int n = Math.min(row1_length, row2_length);
         for (int i = 1; i <= n; i++) {
-            if (Nullables.notEquals(row1.cellAt(row1_length - i), row2.cellAt(row2_length - i))) {
+            if (Nullables_dmp.notEquals(row1.cellAt(row1_length - i), row2.cellAt(row2_length - i))) {
                 return i - 1;
             }
         }

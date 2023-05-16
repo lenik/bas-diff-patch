@@ -1,6 +1,6 @@
 package net.bodz.bas.text;
 
-public class Nullables {
+public class Nullables_dmp {
 
     public static boolean equals(Object a, Object b) {
         if (a == null || b == null)
